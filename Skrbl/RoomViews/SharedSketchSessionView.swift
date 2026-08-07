@@ -1,0 +1,312 @@
+//
+//  SharedSketchSessionView.swift
+//  Skrbl
+//
+//  Created by Codex on 31/07/2026.
+//
+
+import SwiftUI
+
+struct SharedSketchSessionView: View {
+    @ObservedObject var connection: RoomConnectionManager
+    @State private var viewerWord = ""
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                turnStatus
+
+                if connection.gamePhase == .drawing {
+                    guessProgress
+                }
+
+                gameplayContent
+
+                if connection.canSubmitWord {
+                    wordComposer
+                } else if connection.gamePhase == .drawing,
+                          connection.localPlayerHasGuessed {
+                    correctGuessBanner
+                }
+            }
+
+            WordDropOverlay(words: connection.activeWordDrops)
+        }
+        .mainBackground()
+        .onChange(of: connection.currentDrawerID) {
+            viewerWord = ""
+        }
+    }
+
+    @ViewBuilder
+    private var gameplayContent: some View {
+        switch connection.gamePhase {
+        case .lobby:
+            waitingPanel(
+                title: "Preparing the game…",
+                systemImage: "hourglass"
+            )
+        case .choosingWord:
+            if connection.isChoosingWord {
+                wordChoicePanel
+            } else {
+                waitingPanel(
+                    title: "Waiting for the word selection…",
+                    systemImage: "text.word.spacing"
+                )
+            }
+        case .drawing:
+            SketchBoard(
+                tools: connection.sketchTools,
+                allowsDrawing: connection.canDraw,
+                onSkip: connection.skipTurn
+            )
+        }
+    }
+
+    private var turnStatus: some View {
+        HStack(spacing: 8) {
+            Image(systemName: turnStatusIcon)
+                .foregroundStyle(
+                    connection.canDraw ? AppTheme.text : AppTheme.secondaryText
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(turnStatusText)
+                    .font(AppTheme.font(size: 15))
+
+                Text(roundDetailText)
+                    .font(AppTheme.font(size: 12))
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+
+            Spacer()
+
+            if connection.gamePhase == .drawing {
+                Label(formattedTime, systemImage: "timer")
+                    .font(AppTheme.font(size: 15))
+                    .foregroundStyle(
+                        connection.remainingSeconds <= 10 ? Color.red : AppTheme.text
+                    )
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.clear)
+                    .overlay {
+                        Capsule()
+                            .stroke(AppTheme.text, lineWidth: 1.5)
+                    }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(AppTheme.background)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+    }
+
+    private var guessProgress: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(
+                    Array(zip(connection.playerIDs, connection.players)),
+                    id: \.0
+                ) { playerID, playerName in
+                    if playerID != connection.currentDrawerID {
+                        let hasGuessed = connection.hasGuessed(playerID: playerID)
+
+                        Label(
+                            playerName,
+                            systemImage: hasGuessed
+                                ? "checkmark.circle.fill"
+                                : "circle"
+                        )
+                        .font(AppTheme.font(size: 12))
+                        .foregroundStyle(
+                            hasGuessed ? Color.green : AppTheme.secondaryText
+                        )
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.clear)
+                        .overlay {
+                            Capsule()
+                                .stroke(
+                                    hasGuessed ? Color.green : AppTheme.text,
+                                    lineWidth: 1.5
+                                )
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+        .background(AppTheme.background)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+    }
+
+    private var wordChoicePanel: some View {
+        VStack(spacing: 22) {
+            Spacer()
+
+            Image(systemName: "text.word.spacing")
+                .font(.system(size: 44))
+                .foregroundStyle(AppTheme.text)
+
+            VStack(spacing: 6) {
+                Text("Choose a Word")
+                    .font(AppTheme.font(size: 22))
+
+                Text("Your timer starts after you choose.")
+                    .font(AppTheme.font(size: 15))
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+
+            if connection.wordChoices.isEmpty {
+                ProgressView("Loading choices…")
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(connection.wordChoices, id: \.self) { word in
+                        Button {
+                            connection.selectWord(word)
+                        } label: {
+                            Text(word)
+                                .font(AppTheme.font(size: 17))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                        }
+                        .buttonStyle(WhiteOutlineButtonStyle())
+                        .controlSize(.large)
+                    }
+                }
+                .frame(maxWidth: 360)
+                .padding(.horizontal, 24)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.background)
+    }
+
+    private func waitingPanel(
+        title: String,
+        systemImage: String
+    ) -> some View {
+        VStack(spacing: 14) {
+            Spacer()
+
+            Image(systemName: systemImage)
+                .font(.system(size: 42))
+                .foregroundStyle(AppTheme.secondaryText)
+
+            Text(title)
+                .font(AppTheme.font(size: 17))
+                .foregroundStyle(AppTheme.secondaryText)
+                .multilineTextAlignment(.center)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.background)
+    }
+
+    private var wordComposer: some View {
+        HStack(spacing: 10) {
+            TextField("Type your guess", text: $viewerWord)
+                .textFieldStyle(WhiteOutlineTextFieldStyle())
+                .textInputAutocapitalization(.never)
+                .submitLabel(.send)
+                .onSubmit(sendWord)
+                .onChange(of: viewerWord) { _, newValue in
+                    if newValue.count > 32 {
+                        viewerWord = String(newValue.prefix(32))
+                    }
+                }
+
+            Button(action: sendWord) {
+                Image(systemName: "paperplane.fill")
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(WhiteOutlineButtonStyle())
+            .disabled(
+                viewerWord.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            )
+            .accessibilityLabel("Send guess")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(AppTheme.background)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private var correctGuessBanner: some View {
+        Label("Correct! Waiting for the next round", systemImage: "checkmark.circle.fill")
+            .font(AppTheme.font(size: 17))
+            .foregroundStyle(.green)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(AppTheme.background)
+            .overlay(alignment: .top) {
+                Divider()
+            }
+    }
+
+    private var turnStatusIcon: String {
+        switch connection.gamePhase {
+        case .lobby:
+            "hourglass"
+        case .choosingWord:
+            connection.isChoosingWord ? "text.word.spacing" : "eye.fill"
+        case .drawing:
+            connection.canDraw ? "pencil.circle.fill" : "eye.fill"
+        }
+    }
+
+    private var turnStatusText: String {
+        switch connection.gamePhase {
+        case .lobby:
+            "Preparing the game…"
+        case .choosingWord:
+            if connection.isChoosingWord {
+                "Choose one of three words"
+            } else if let currentDrawerName = connection.currentDrawerName {
+                "\(currentDrawerName) is choosing a word"
+            } else {
+                "Waiting for the next player…"
+            }
+        case .drawing:
+            if connection.canDraw {
+                "Your turn to draw"
+            } else if let currentDrawerName = connection.currentDrawerName {
+                "\(currentDrawerName) is drawing"
+            } else {
+                "Waiting for the next turn…"
+            }
+        }
+    }
+
+    private var roundDetailText: String {
+        let round = "Round \(connection.currentRound) of \(connection.gameSettings.numberOfRounds)"
+        if connection.canDraw,
+           let wordToDraw = connection.wordToDraw {
+            return "\(round) • Draw: \(wordToDraw)"
+        }
+        return round
+    }
+
+    private var formattedTime: String {
+        let seconds = max(connection.remainingSeconds, 0)
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
+    private func sendWord() {
+        if connection.sendWord(viewerWord) {
+            viewerWord = ""
+        }
+    }
+}
