@@ -218,3 +218,25 @@ struct RoomLobbyView: View {
         return connection.isConnected ? .green : AppTheme.secondaryText
     }
 }
+
+#Preview("Host Lobby") {
+    NavigationStack {
+        RoomLobbyView(
+            connection: RoomConnectionManager(),
+            showsQRCode: true
+        )
+        .navigationTitle("Room Lobby")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+#Preview("Guest Lobby") {
+    NavigationStack {
+        RoomLobbyView(
+            connection: RoomConnectionManager(),
+            showsQRCode: false
+        )
+        .navigationTitle("Room Lobby")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}

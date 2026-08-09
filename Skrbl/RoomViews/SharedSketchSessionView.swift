@@ -310,3 +310,11 @@ struct SharedSketchSessionView: View {
         }
     }
 }
+
+#Preview("Shared Sketch Session") {
+    NavigationStack {
+        SharedSketchSessionView(connection: RoomConnectionManager())
+            .navigationTitle("Sketch Board")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}

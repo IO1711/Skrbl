@@ -25,7 +25,7 @@ struct SketraApp: App {
         let navigationAppearance = UINavigationBarAppearance()
         navigationAppearance.configureWithOpaqueBackground()
         navigationAppearance.backgroundColor = backgroundColor
-        navigationAppearance.shadowColor = UIColor.white.withAlphaComponent(0.35)
+        navigationAppearance.shadowColor = .clear
         navigationAppearance.titleTextAttributes = [
             .font: titleFont,
             .foregroundColor: UIColor.white

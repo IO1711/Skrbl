@@ -8,6 +8,17 @@
 import SwiftUI
 
 enum AppTheme {
+    struct TextStyle: ViewModifier {
+        let font: Font
+        let color: Color
+
+        func body(content: Content) -> some View {
+            content
+                .font(font)
+                .foregroundStyle(color)
+        }
+    }
+
     static let background = Color(
         red: 9.0 / 255.0,
         green: 53.0 / 255.0,
@@ -20,6 +31,20 @@ enum AppTheme {
     static func font(size: CGFloat) -> Font {
         .custom("Chalkduster", size: size)
     }
+
+    static func chalkboardText(size: CGFloat) -> TextStyle {
+        TextStyle(
+            font: .custom("ChalkboardSE-Regular", size: size),
+            color: text
+        )
+    }
+
+    static func secondaryChalkboardText(size: CGFloat) -> TextStyle {
+        TextStyle(
+            font: .custom("ChalkboardSE-Regular", size: size),
+            color: secondaryText
+        )
+    }
 }
 
 private struct MainBackground: View {
@@ -29,7 +54,37 @@ private struct MainBackground: View {
     }
 }
 
+private struct ChalkBackButtonModifier: ViewModifier {
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image("back_chalk")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+    }
+}
+
 extension View {
+    func appTextStyle(_ style: AppTheme.TextStyle) -> some View {
+        modifier(style)
+    }
+
     func mainBackground() -> some View {
         background {
             MainBackground()
@@ -44,6 +99,10 @@ extension View {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(AppTheme.text, lineWidth: 1.5)
             }
+    }
+
+    func chalkBackButton() -> some View {
+        modifier(ChalkBackButtonModifier())
     }
 }
 

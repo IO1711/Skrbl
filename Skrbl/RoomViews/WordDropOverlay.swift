@@ -86,3 +86,30 @@ private struct AnimatedWordDrop: View {
             }
     }
 }
+
+#Preview("Word Drops") {
+    ZStack {
+        AppTheme.background
+            .ignoresSafeArea()
+
+        WordDropOverlay(
+            words: [
+                WordDrop(
+                    id: UUID(),
+                    text: "Sketch",
+                    horizontalPosition: 0.2
+                ),
+                WordDrop(
+                    id: UUID(),
+                    text: "Almost there!",
+                    horizontalPosition: 0.55
+                ),
+                WordDrop(
+                    id: UUID(),
+                    text: "Pencil",
+                    horizontalPosition: 0.85
+                )
+            ]
+        )
+    }
+}

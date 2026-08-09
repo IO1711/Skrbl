@@ -40,6 +40,7 @@ struct JoinRoomView: View {
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .chalkBackButton()
         .sheet(isPresented: $isShowingScanner) {
             scannerSheet
         }
@@ -61,7 +62,7 @@ struct JoinRoomView: View {
             return connection.roomName
         }
         if selectedConnectionMode == nil {
-            return "Connection Type"
+            return ""
         }
         return "Join Room"
     }
@@ -234,7 +235,7 @@ struct JoinRoomView: View {
     }
 }
 
-#Preview {
+#Preview("Join Room") {
     NavigationStack {
         JoinRoomView()
     }

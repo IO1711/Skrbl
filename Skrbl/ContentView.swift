@@ -13,9 +13,9 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 Text("Scribble")
                     .frame(maxWidth: .infinity)
-                    .font(AppTheme.font(size: 50))
+                    .font(AppTheme.font(size: 60))
                     .foregroundStyle(AppTheme.text)
-                    .padding(.vertical, 40)
+                    .padding(.vertical, 30)
 
                 ScrollView {
                     VStack(spacing: -100) {
@@ -34,10 +34,13 @@ struct ContentView: View {
                                             .rotationEffect(.degrees(3))
                                             .offset(x: -50, y: -45)
                                     }
+                                    .overlay(alignment: .center) {
+                                        Text("Create room")
+                                            .font(AppTheme.font(size: 30))
+                                            .foregroundStyle(AppTheme.text)
+                                            .offset(y: -10)
+                                    }
 
-                                Text("Create room")
-                                    .font(AppTheme.font(size: 30))
-                                    .foregroundStyle(AppTheme.text)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -49,10 +52,13 @@ struct ContentView: View {
                                 Image("frame")
                                     .resizable()
                                     .frame(width: 500, height: 350)
+                                    .overlay() {
+                                        Text("Join room")
+                                            .font(AppTheme.font(size: 30))
+                                            .foregroundStyle(AppTheme.text)
+                                            .offset(y: 10)
+                                    }
 
-                                Text("Join room")
-                                    .font(AppTheme.font(size: 30))
-                                    .foregroundStyle(AppTheme.text)
                             }
                         }
                         .frame(maxWidth: .infinity)
