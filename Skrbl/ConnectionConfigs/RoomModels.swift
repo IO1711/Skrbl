@@ -102,8 +102,19 @@ struct RoomGameSettings: Codable, Equatable {
 
 struct WordDrop: Codable, Equatable, Identifiable {
     let id: UUID
+    let playerName: String
     let text: String
     let horizontalPosition: Double
+}
+
+struct RoomPlayerScore: Codable, Equatable, Identifiable {
+    let playerID: UUID
+    let playerName: String
+    let points: Int
+
+    var id: UUID {
+        playerID
+    }
 }
 
 struct RoomWireMessage: Codable {
@@ -119,6 +130,7 @@ struct RoomWireMessage: Codable {
         case drawingTurn
         case skipTurn
         case wordDrop
+        case wordHint
         case guessStatus
         case gameEnded
     }
@@ -139,6 +151,8 @@ struct RoomWireMessage: Codable {
     let remainingSeconds: Int?
     let guessedPlayerIDs: [UUID]?
     let roundNumber: Int?
+    let playerScores: [RoomPlayerScore]?
+    let wordHint: String?
 
     private init(
         kind: Kind,
@@ -156,7 +170,9 @@ struct RoomWireMessage: Codable {
         selectedWord: String? = nil,
         remainingSeconds: Int? = nil,
         guessedPlayerIDs: [UUID]? = nil,
-        roundNumber: Int? = nil
+        roundNumber: Int? = nil,
+        playerScores: [RoomPlayerScore]? = nil,
+        wordHint: String? = nil
     ) {
         self.kind = kind
         self.roomID = roomID
@@ -174,6 +190,8 @@ struct RoomWireMessage: Codable {
         self.remainingSeconds = remainingSeconds
         self.guessedPlayerIDs = guessedPlayerIDs
         self.roundNumber = roundNumber
+        self.playerScores = playerScores
+        self.wordHint = wordHint
     }
 
     static func join(
@@ -218,13 +236,15 @@ struct RoomWireMessage: Codable {
     static func startGame(
         roomID: UUID,
         currentDrawerID: UUID,
-        roundNumber: Int
+        roundNumber: Int,
+        playerScores: [RoomPlayerScore]
     ) -> RoomWireMessage {
         RoomWireMessage(
             kind: .startGame,
             roomID: roomID,
             currentDrawerID: currentDrawerID,
-            roundNumber: roundNumber
+            roundNumber: roundNumber,
+            playerScores: playerScores
         )
     }
 
@@ -257,13 +277,15 @@ struct RoomWireMessage: Codable {
     static func roundStarted(
         roomID: UUID,
         currentDrawerID: UUID,
-        remainingSeconds: Int
+        remainingSeconds: Int,
+        wordHint: String
     ) -> RoomWireMessage {
         RoomWireMessage(
             kind: .roundStarted,
             roomID: roomID,
             currentDrawerID: currentDrawerID,
-            remainingSeconds: remainingSeconds
+            remainingSeconds: remainingSeconds,
+            wordHint: wordHint
         )
     }
 
@@ -283,13 +305,15 @@ struct RoomWireMessage: Codable {
     static func drawingTurn(
         roomID: UUID,
         currentDrawerID: UUID,
-        roundNumber: Int
+        roundNumber: Int,
+        playerScores: [RoomPlayerScore]
     ) -> RoomWireMessage {
         RoomWireMessage(
             kind: .drawingTurn,
             roomID: roomID,
             currentDrawerID: currentDrawerID,
-            roundNumber: roundNumber
+            roundNumber: roundNumber,
+            playerScores: playerScores
         )
     }
 
@@ -317,21 +341,38 @@ struct RoomWireMessage: Codable {
         )
     }
 
+    static func wordHint(
+        roomID: UUID,
+        wordHint: String
+    ) -> RoomWireMessage {
+        RoomWireMessage(
+            kind: .wordHint,
+            roomID: roomID,
+            wordHint: wordHint
+        )
+    }
+
     static func guessStatus(
         roomID: UUID,
-        guessedPlayerIDs: [UUID]
+        guessedPlayerIDs: [UUID],
+        playerScores: [RoomPlayerScore]
     ) -> RoomWireMessage {
         RoomWireMessage(
             kind: .guessStatus,
             roomID: roomID,
-            guessedPlayerIDs: guessedPlayerIDs
+            guessedPlayerIDs: guessedPlayerIDs,
+            playerScores: playerScores
         )
     }
 
-    static func gameEnded(roomID: UUID) -> RoomWireMessage {
+    static func gameEnded(
+        roomID: UUID,
+        playerScores: [RoomPlayerScore]
+    ) -> RoomWireMessage {
         RoomWireMessage(
             kind: .gameEnded,
-            roomID: roomID
+            roomID: roomID,
+            playerScores: playerScores
         )
     }
 }

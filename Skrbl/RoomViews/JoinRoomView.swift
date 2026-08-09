@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct JoinRoomView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var isSearching = false
@@ -21,7 +22,12 @@ struct JoinRoomView: View {
 
     var body: some View {
         Group {
-            if connection.isGameStarted {
+            if connection.isShowingGameResults {
+                GameResultsView(
+                    rankings: connection.finalRankings,
+                    onBackToRoom: connection.dismissGameResults
+                )
+            } else if connection.isGameStarted {
                 SharedSketchSessionView(connection: connection)
             } else if connection.isConnected {
                 RoomLobbyView(
@@ -40,7 +46,11 @@ struct JoinRoomView: View {
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .chalkBackButton()
+        .chalkBackButton(action: navigateBack)
+        .edgeSwipeBack(
+            isEnabled: !connection.isGameStarted,
+            action: navigateBack
+        )
         .sheet(isPresented: $isShowingScanner) {
             scannerSheet
         }
@@ -55,6 +65,9 @@ struct JoinRoomView: View {
     }
 
     private var navigationTitle: String {
+        if connection.isShowingGameResults {
+            return "Final Rankings"
+        }
         if connection.isGameStarted {
             return "Sketch Board"
         }
@@ -68,46 +81,91 @@ struct JoinRoomView: View {
     }
 
     private func nameEntry(connectionMode: RoomConnectionMode) -> some View {
-        Form {
-            Section("Connection") {
-                HStack {
-                    Label(connectionMode.title, systemImage: connectionMode.systemImage)
-                    Spacer()
-                    Button("Change") {
-                        selectedConnectionMode = nil
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Connection")
+                        .appTextStyle(AppTheme.chalkboardText(size: 20))
+
+                    HStack {
+                        HStack {
+                            Image(connectionMode.title)
+                                .resizable()
+                                .frame(width: 44, height: 48)
+
+                            Text(connectionMode.title)
+                                .appTextStyle(AppTheme.chalkboardText(size: 20))
+                        }
+
+                        Spacer()
+
+                        Button {
+                            selectedConnectionMode = nil
+                        } label: {
+                            Image("small_button_frame")
+                                .resizable()
+                                .frame(width: 120, height: 60)
+                                .overlay {
+                                    Text("Change")
+                                        .font(AppTheme.font(size: 18))
+                                        .foregroundStyle(AppTheme.text)
+                                }
+                        }
                     }
-                    .buttonStyle(WhiteOutlineButtonStyle())
                 }
-            }
-            .listRowBackground(Color.clear)
 
-            Section {
-                TextField("Player name", text: $playerName)
-                    .textFieldStyle(WhiteOutlineTextFieldStyle())
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-                    .submitLabel(.next)
-                    .onSubmit(beginSearch)
-            } header: {
-                Text("Your Name")
-                    .foregroundStyle(AppTheme.secondaryText)
-            } footer: {
-                Text("Other players will see this name after you join.")
-                    .foregroundStyle(AppTheme.secondaryText)
-            }
-            .listRowBackground(Color.clear)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your Name")
+                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
 
-            Section {
-                Button(action: beginSearch) {
-                    Text("Next")
+                    TextField("Player name", text: $playerName)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 24)
                         .frame(maxWidth: .infinity)
+                        .frame(height: 60)
+                        .contentShape(Rectangle())
+                        .overlay {
+                            Image("input_frame")
+                                .resizable()
+                                .frame(width: 380)
+                                .overlay {
+                                    Image("monkey_chalk")
+                                        .resizable()
+                                        .frame(width: 108, height: 162)
+                                        .offset(x: 100, y: -40)
+                                }
+                                .allowsHitTesting(false)
+                        }
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
+                        .onSubmit(beginSearch)
+
+                    Text("Other players will see this name after you join.")
+                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
                 }
-                .buttonStyle(WhiteOutlineButtonStyle())
+
+                Button(action: beginSearch) {
+                    Image("flat_button_frame")
+                        .resizable()
+                        .frame(maxWidth: 347)
+                        .frame(height: 55)
+                        .overlay {
+                            Text("Next")
+                                .font(AppTheme.font(size: 18))
+                                .foregroundStyle(AppTheme.text)
+                        }
+                }
+                .frame(maxWidth: .infinity)
                 .disabled(normalizedName.isEmpty)
+                .opacity(normalizedName.isEmpty ? 0.45 : 1)
             }
-            .listRowBackground(Color.clear)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
         }
-        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .buttonStyle(.plain)
         .mainBackground()
     }
 
@@ -223,6 +281,25 @@ struct JoinRoomView: View {
             playerName: normalizedName,
             connectionMode: selectedConnectionMode
         )
+    }
+
+    private func navigateBack() {
+        if connection.isShowingGameResults {
+            connection.dismissGameResults()
+        } else if connection.isGameStarted {
+            dismiss()
+        } else if connection.isConnected {
+            connection.stop()
+            isSearching = false
+            selectedConnectionMode = nil
+        } else if isSearching {
+            connection.stop()
+            isSearching = false
+        } else if selectedConnectionMode != nil {
+            selectedConnectionMode = nil
+        } else {
+            dismiss()
+        }
     }
 
     private var showsProgress: Bool {

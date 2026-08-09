@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct CreateRoomView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var hasCreatedRoom = false
@@ -23,7 +24,12 @@ struct CreateRoomView: View {
 
     var body: some View {
         Group {
-            if connection.isGameStarted {
+            if connection.isShowingGameResults {
+                GameResultsView(
+                    rankings: connection.finalRankings,
+                    onBackToRoom: connection.dismissGameResults
+                )
+            } else if connection.isGameStarted {
                 SharedSketchSessionView(connection: connection)
             } else if hasCreatedRoom {
                 RoomLobbyView(
@@ -40,115 +46,137 @@ struct CreateRoomView: View {
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .chalkBackButton()
+        .chalkBackButton(action: navigateBack)
+        .edgeSwipeBack(
+            isEnabled: !connection.isGameStarted,
+            action: navigateBack
+        )
         .onDisappear {
             connection.stop()
         }
     }
 
     private func roomForm(connectionMode: RoomConnectionMode) -> some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Connection")
+                        .appTextStyle(AppTheme.chalkboardText(size: 20))
 
-                Text("Connection")
-                    .appTextStyle(AppTheme.chalkboardText(size: 20))
-
-                HStack {
-                    //Label(connectionMode.title, systemImage: connectionMode.systemImage)
                     HStack {
-                        Image("\(connectionMode.title)")
-                            .resizable()
-                            .frame(width: 44, height: 48)
-                        
-                        Text("\(connectionMode.title)")
-                            .appTextStyle(AppTheme.chalkboardText(size: 20))
-                    }
+                        HStack {
+                            Image(connectionMode.title)
+                                .resizable()
+                                .frame(width: 44, height: 48)
 
-                    Spacer()
-                    Button {
-                        selectedConnectionMode = nil
-                    } label: {
-                        Image("small_button_frame")
-                            .resizable()
-                            .frame(width: 120, height: 60)
-                            .overlay {
-                                Text("Change")
-                                    .font(AppTheme.font(size: 18))
-                                    .foregroundStyle(AppTheme.text)
-                            }
+                            Text(connectionMode.title)
+                                .appTextStyle(AppTheme.chalkboardText(size: 20))
+                        }
+
+                        Spacer()
+
+                        Button {
+                            selectedConnectionMode = nil
+                        } label: {
+                            Image("small_button_frame")
+                                .resizable()
+                                .frame(width: 120, height: 60)
+                                .overlay {
+                                    Text("Change")
+                                        .font(AppTheme.font(size: 18))
+                                        .foregroundStyle(AppTheme.text)
+                                }
+                        }
                     }
-                    //.buttonStyle(WhiteOutlineButtonStyle())
                 }
-            }
-            .listRowBackground(Color.clear)
 
-            Section {
-                ZStack(alignment: .bottom) {
-                        TextField("Player name", text: $playerName)
-                            .textFieldStyle(.plain)
-                            .padding(.horizontal, 24)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 60)
-                            .background {
-                                Image("input_frame")
-                                    .resizable()
-                            }
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .submitLabel(.go)
-                            .onSubmit(createRoom)
+                VStack(alignment: .leading, spacing: 4) {
+                //Section {
 
-                        Image("monkey_chalk")
-                            .resizable()
-                            .frame(width: 108, height: 162)
-                            .offset(x: 100)
-                            .allowsHitTesting(false)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 162)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            } header: {
-                Text("Your Name")
-                    .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
-            } footer: {
-                Text("The room will be created under this name.")
-                    .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
-            }
-            .listRowBackground(Color.clear)
+                    Text("Your Name")
+                            .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
 
-            Section {
+                    TextField("Player name", text: $playerName)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 24)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 60)
+                        .contentShape(Rectangle())
+                        /*.background {
+                         Image("input_frame")
+                             .resizable()
+                             .overlay {
+                                 Image("monkey_chalk")
+                                     .resizable()
+                                     .frame(width: 108, height: 162)
+                                     .offset(x:100, y: -40)
+                             }
+                        }*/
+                        .overlay {
+                            Image("input_frame")
+                                .resizable()
+                                .frame(width: 380)
+                                .overlay {
+                                    Image("monkey_chalk")
+                                        .resizable()
+                                        .frame(width: 108, height: 162)
+                                        .offset(x:100, y: -40)
+                                }
+                                .allowsHitTesting(false)
+                        }
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .submitLabel(.go)
+                        .onSubmit(createRoom)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
+                    Text("The room will be created under this name.")
+                            .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
+
+
+                }/* header: {
+                    Text("Your Name")
+                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
+                } footer: {
+                    Text("The room will be created under this name.")
+                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
+                }*/
+
                 Button(action: createRoom) {
-                    /*Label("Create Room", systemImage: "person.2.badge.plus")
-                        .frame(maxWidth: .infinity)*/
                     Image("flat_button_frame")
                         .resizable()
-                        .frame(width: 347, height: 55)
+                        .frame(maxWidth: 347)
+                        .frame(height: 55)
                         .overlay {
                             Text("Create room")
                                 .font(AppTheme.font(size: 18))
                                 .foregroundStyle(AppTheme.text)
                         }
                 }
-                //.buttonStyle(WhiteOutlineButtonStyle())
+                .frame(maxWidth: .infinity)
                 .disabled(normalizedName.isEmpty)
-            }
-            .listRowBackground(Color.clear)
+                .opacity(normalizedName.isEmpty ? 0.45 : 1)
 
-            if case .failed(let message) = connection.state {
-                Section {
+                if case .failed(let message) = connection.state {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                 }
-                .listRowBackground(Color.clear)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
         }
-        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .buttonStyle(.plain)
         .mainBackground()
     }
 
     private var navigationTitle: String {
+        if connection.isShowingGameResults {
+            return "Final Rankings"
+        }
         if connection.isGameStarted {
             return "Sketch Board"
         }
@@ -167,6 +195,22 @@ struct CreateRoomView: View {
             return
         }
         hasCreatedRoom = true
+    }
+
+    private func navigateBack() {
+        if connection.isShowingGameResults {
+            connection.dismissGameResults()
+        } else if connection.isGameStarted {
+            dismiss()
+        } else if hasCreatedRoom {
+            connection.stop()
+            hasCreatedRoom = false
+            selectedConnectionMode = nil
+        } else if selectedConnectionMode != nil {
+            selectedConnectionMode = nil
+        } else {
+            dismiss()
+        }
     }
 }
 
@@ -214,4 +258,36 @@ struct CreateRoomView: View {
      .listRowInsets(EdgeInsets())
      .listRowBackground(Color.clear)
      .listRowSeparator(.hidden)
+
+
+
+ Text("Your Name")
+     .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
+
+ ZStack(alignment: .bottom) {
+     TextField("Player name", text: $playerName)
+         .textFieldStyle(.plain)
+         .padding(.horizontal, 24)
+         .frame(maxWidth: .infinity)
+         .frame(height: 60)
+         .background {
+             Image("input_frame")
+                 .resizable()
+         }
+         .textInputAutocapitalization(.words)
+         .autocorrectionDisabled()
+         .submitLabel(.go)
+         .onSubmit(createRoom)
+
+     Image("monkey_chalk")
+         .resizable()
+         .frame(width: 108, height: 162)
+         .offset(x: 100)
+         .allowsHitTesting(false)
+ }
+ .frame(maxWidth: .infinity)
+ .frame(height: 162)
+
+ Text("The room will be created under this name.")
+     .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
  */

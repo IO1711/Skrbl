@@ -34,9 +34,12 @@ final class RoomConnectionManager: ObservableObject {
     @Published private(set) var gamePhase: RoomGamePhase = .lobby
     @Published private(set) var wordChoices: [String] = []
     @Published private(set) var wordToDraw: String?
+    @Published private(set) var wordHint = ""
     @Published private(set) var remainingSeconds = 0
     @Published private(set) var currentRound = 0
     @Published private(set) var guessedPlayerIDs: Set<UUID> = []
+    @Published private(set) var playerScores: [RoomPlayerScore] = []
+    @Published private(set) var finalRankings: [RoomPlayerScore] = []
 
     let sketchTools = SketchTools()
 
@@ -77,6 +80,12 @@ final class RoomConnectionManager: ObservableObject {
     private var currentSecretWord: String?
     private var roundTimerTask: Task<Void, Never>?
     private var gamePlayerIDs: [UUID] = []
+    private var roundEligibleGuesserIDs: Set<UUID> = []
+    private var roundGuessPoints: [UUID: Int] = [:]
+    private var hasAwardedDrawerForCurrentTurn = false
+    private var hintCharacters: [Character] = []
+    private var hintRevealOrder: [Int] = []
+    private var revealedHintIndices: Set<Int> = []
 
     var isConnected: Bool {
         state == .connected
@@ -106,6 +115,14 @@ final class RoomConnectionManager: ObservableObject {
         guessedPlayerIDs.contains(localPlayerID)
     }
 
+    var isShowingGameResults: Bool {
+        !finalRankings.isEmpty
+    }
+
+    var localPlayerScore: Int {
+        playerScores.first { $0.playerID == localPlayerID }?.points ?? 0
+    }
+
     var currentDrawerName: String? {
         guard let currentDrawerID,
               let index = playerIDs.firstIndex(of: currentDrawerID),
@@ -118,6 +135,15 @@ final class RoomConnectionManager: ObservableObject {
 
     func hasGuessed(playerID: UUID) -> Bool {
         guessedPlayerIDs.contains(playerID)
+    }
+
+    func score(for playerID: UUID) -> Int {
+        playerScores.first { $0.playerID == playerID }?.points ?? 0
+    }
+
+    func dismissGameResults() {
+        finalRankings = []
+        playerScores = []
     }
 
     init() {
@@ -315,6 +341,14 @@ final class RoomConnectionManager: ObservableObject {
         do {
             let choices = try WordLibrary.choices(for: gameSettings.topic)
             gamePlayerIDs = playerIDs
+            playerScores = zip(playerIDs, players).map { playerID, playerName in
+                RoomPlayerScore(
+                    playerID: playerID,
+                    playerName: playerName,
+                    points: 0
+                )
+            }
+            finalRankings = []
             currentRound = 1
             isGameStarted = true
             beginTurn(
@@ -394,6 +428,7 @@ final class RoomConnectionManager: ObservableObject {
 
         let wordDrop = WordDrop(
             id: UUID(),
+            playerName: localPlayerName,
             text: normalizedWord,
             horizontalPosition: Double.random(in: 0.12...0.88)
         )
@@ -989,6 +1024,13 @@ final class RoomConnectionManager: ObservableObject {
             }
 
             currentRound = roundNumber
+            if let incomingScores = message.playerScores,
+               let approvedScores = validatedPlayerScores(incomingScores) {
+                playerScores = approvedScores
+            } else {
+                playerScores = zeroedPlayerScores()
+            }
+            finalRankings = []
             isGameStarted = true
             prepareForChoosing(drawerID: currentDrawerID)
 
@@ -1030,6 +1072,7 @@ final class RoomConnectionManager: ObservableObject {
             if currentDrawerID != localPlayerID {
                 wordToDraw = nil
             }
+            wordHint = validatedWordHint(message.wordHint) ?? ""
             guessedPlayerIDs = []
             activeWordDrops.removeAll()
             sketchTools.reset()
@@ -1082,6 +1125,14 @@ final class RoomConnectionManager: ObservableObject {
             }
             presentWordDrop(approvedWordDrop)
 
+        case (.guest, .wordHint):
+            guard message.roomID == roomID,
+                  gamePhase == .drawing,
+                  let approvedWordHint = validatedWordHint(message.wordHint) else {
+                return
+            }
+            wordHint = approvedWordHint
+
         case (.host, .skipTurn):
             guard message.roomID == roomID,
                   gamePhase == .drawing,
@@ -1102,21 +1153,35 @@ final class RoomConnectionManager: ObservableObject {
                 return
             }
             currentRound = roundNumber
+            if let incomingScores = message.playerScores,
+               let approvedScores = validatedPlayerScores(incomingScores) {
+                playerScores = approvedScores
+            }
             prepareForChoosing(drawerID: currentDrawerID)
 
         case (.guest, .guessStatus):
             guard message.roomID == roomID,
-                  gamePhase == .drawing,
+                  isGameStarted,
                   let guessedPlayerIDs = message.guessedPlayerIDs else {
                 return
             }
             self.guessedPlayerIDs = Set(
                 guessedPlayerIDs.filter { playerIDs.contains($0) }
             )
+            if let incomingScores = message.playerScores,
+               let approvedScores = validatedPlayerScores(incomingScores) {
+                playerScores = approvedScores
+            }
 
         case (.guest, .gameEnded):
-            guard message.roomID == roomID else { return }
-            resetGameplayState()
+            guard message.roomID == roomID else {
+                return
+            }
+            let approvedScores = message.playerScores.flatMap(
+                validatedPlayerScores
+            ) ?? playerScores
+            guard !approvedScores.isEmpty else { return }
+            completeGame(with: approvedScores)
 
         default:
             break
@@ -1124,17 +1189,69 @@ final class RoomConnectionManager: ObservableObject {
     }
 
     private func validatedWordDrop(_ wordDrop: WordDrop) -> WordDrop? {
+        let normalizedPlayerName = Self.normalizedPlayerName(wordDrop.playerName)
         let normalizedWord = Self.normalizedViewerWord(wordDrop.text)
-        guard !normalizedWord.isEmpty,
+        guard !normalizedPlayerName.isEmpty,
+              !normalizedWord.isEmpty,
               wordDrop.horizontalPosition.isFinite else {
             return nil
         }
 
         return WordDrop(
             id: wordDrop.id,
+            playerName: normalizedPlayerName,
             text: normalizedWord,
             horizontalPosition: min(max(wordDrop.horizontalPosition, 0.08), 0.92)
         )
+    }
+
+    private func validatedWordHint(_ incomingHint: String?) -> String? {
+        guard let incomingHint,
+              !incomingHint.isEmpty,
+              incomingHint.count <= 160,
+              !incomingHint.contains(where: { $0.isNewline }) else {
+            return nil
+        }
+        return incomingHint
+    }
+
+    private func validatedPlayerScores(
+        _ scores: [RoomPlayerScore]
+    ) -> [RoomPlayerScore]? {
+        guard scores.count == playerIDs.count,
+              !scores.isEmpty,
+              Set(scores.map(\.playerID)).count == scores.count else {
+            return nil
+        }
+
+        var approvedScores: [RoomPlayerScore] = []
+        for score in scores {
+            guard score.points >= 0,
+                  let playerIndex = playerIDs.firstIndex(of: score.playerID),
+                  players.indices.contains(playerIndex) else {
+                return nil
+            }
+
+            approvedScores.append(
+                RoomPlayerScore(
+                    playerID: score.playerID,
+                    playerName: players[playerIndex],
+                    points: score.points
+                )
+            )
+        }
+
+        return approvedScores
+    }
+
+    private func zeroedPlayerScores() -> [RoomPlayerScore] {
+        zip(playerIDs, players).map { playerID, playerName in
+            RoomPlayerScore(
+                playerID: playerID,
+                playerName: playerName,
+                points: 0
+            )
+        }
     }
 
     private func presentWordDrop(_ wordDrop: WordDrop) {
@@ -1157,7 +1274,8 @@ final class RoomConnectionManager: ObservableObject {
         guard mode == .host,
               gamePhase == .drawing,
               playerID != currentDrawerID,
-              playerIDs.contains(playerID),
+              let playerIndex = playerIDs.firstIndex(of: playerID),
+              players.indices.contains(playerIndex),
               !guessedPlayerIDs.contains(playerID),
               let roomID,
               let currentSecretWord else {
@@ -1165,18 +1283,34 @@ final class RoomConnectionManager: ObservableObject {
         }
 
         if Self.guessKey(wordDrop.text) == Self.guessKey(currentSecretWord) {
+            let timeBasedPoints = Self.correctGuessPoints(
+                remainingSeconds: remainingSeconds,
+                timeLimit: gameSettings.timeLimit
+            )
+            let awardedPoints = Self.pointsAfterHintPenalty(
+                timeBasedPoints,
+                revealedLetterCount: revealedHintIndices.count
+            )
+            addPoints(awardedPoints, to: playerID)
+            roundGuessPoints[playerID] = awardedPoints
             guessedPlayerIDs.insert(playerID)
             broadcastGuessStatus()
             if allViewersHaveGuessed {
                 scheduleRoundFinishAfterCorrectGuess()
             }
         } else {
-            presentWordDrop(wordDrop)
+            let approvedWordDrop = WordDrop(
+                id: wordDrop.id,
+                playerName: players[playerIndex],
+                text: wordDrop.text,
+                horizontalPosition: wordDrop.horizontalPosition
+            )
+            presentWordDrop(approvedWordDrop)
             broadcast(
                 .wordDrop(
                     roomID: roomID,
                     playerID: playerID,
-                    wordDrop: wordDrop
+                    wordDrop: approvedWordDrop
                 )
             )
         }
@@ -1194,10 +1328,135 @@ final class RoomConnectionManager: ObservableObject {
             .lowercased()
     }
 
+    private static func correctGuessPoints(
+        remainingSeconds: Int,
+        timeLimit: Int
+    ) -> Int {
+        guard timeLimit > 0 else { return 20 }
+
+        let clampedRemainingSeconds = min(max(remainingSeconds, 0), timeLimit)
+        let elapsedFraction = 1
+            - Double(clampedRemainingSeconds) / Double(timeLimit)
+
+        guard elapsedFraction > 0.20 else { return 100 }
+
+        let scoringProgress = min(max((elapsedFraction - 0.20) / 0.80, 0), 1)
+        let points = 20 + 80 * (1 - pow(scoringProgress, 1.5))
+        return min(max(Int(points.rounded()), 20), 100)
+    }
+
+    private static func pointsAfterHintPenalty(
+        _ points: Int,
+        revealedLetterCount: Int
+    ) -> Int {
+        let penalty = min(Double(max(revealedLetterCount, 0)) * 0.10, 0.50)
+        return max(Int((Double(points) * (1 - penalty)).rounded()), 1)
+    }
+
+    private func prepareWordHint(for word: String) {
+        hintCharacters = Array(word)
+        hintRevealOrder = hintCharacters.indices
+            .filter { Self.isHintLetter(hintCharacters[$0]) }
+            .shuffled()
+        revealedHintIndices = []
+        wordHint = formattedWordHint()
+    }
+
+    private func revealNextHintLetterIfNeeded() {
+        guard mode == .host,
+              gamePhase == .drawing,
+              let roomID,
+              !hintRevealOrder.isEmpty,
+              remainingSeconds > 0,
+              gameSettings.timeLimit > 0 else {
+            return
+        }
+
+        let elapsedFraction = 1
+            - Double(remainingSeconds) / Double(gameSettings.timeLimit)
+        guard elapsedFraction > 0.50 else { return }
+
+        let revealProgress = min((elapsedFraction - 0.50) / 0.50, 1)
+        let targetRevealCount = Int(
+            ceil(revealProgress * Double(hintRevealOrder.count))
+        )
+        guard revealedHintIndices.count < targetRevealCount,
+              let nextIndex = hintRevealOrder.first(where: {
+                  !revealedHintIndices.contains($0)
+              }) else {
+            return
+        }
+
+        revealedHintIndices.insert(nextIndex)
+        wordHint = formattedWordHint()
+        broadcast(
+            .wordHint(
+                roomID: roomID,
+                wordHint: wordHint
+            )
+        )
+    }
+
+    private func formattedWordHint() -> String {
+        var result = ""
+        var needsCharacterSpacing = false
+
+        for (index, character) in hintCharacters.enumerated() {
+            if character.isWhitespace {
+                result += "   "
+                needsCharacterSpacing = false
+                continue
+            }
+
+            if needsCharacterSpacing {
+                result += " "
+            }
+
+            if Self.isHintLetter(character) {
+                result += revealedHintIndices.contains(index)
+                    ? String(character)
+                    : "_"
+            } else {
+                result += String(character)
+            }
+            needsCharacterSpacing = true
+        }
+
+        return result
+    }
+
+    private func resetWordHintState() {
+        wordHint = ""
+        hintCharacters = []
+        hintRevealOrder = []
+        revealedHintIndices = []
+    }
+
+    private static func isHintLetter(_ character: Character) -> Bool {
+        character.unicodeScalars.contains {
+            CharacterSet.alphanumerics.contains($0)
+        }
+    }
+
+    private func addPoints(_ points: Int, to playerID: UUID) {
+        guard points > 0,
+              let scoreIndex = playerScores.firstIndex(where: {
+                  $0.playerID == playerID
+              }) else {
+            return
+        }
+
+        let currentScore = playerScores[scoreIndex]
+        playerScores[scoreIndex] = RoomPlayerScore(
+            playerID: currentScore.playerID,
+            playerName: currentScore.playerName,
+            points: currentScore.points + points
+        )
+    }
+
     private var allViewersHaveGuessed: Bool {
-        guard let currentDrawerID else { return false }
-        let viewerIDs = Set(playerIDs.filter { $0 != currentDrawerID })
-        return !viewerIDs.isEmpty && viewerIDs.isSubset(of: guessedPlayerIDs)
+        !roundEligibleGuesserIDs.isEmpty
+            && roundEligibleGuesserIDs.isSubset(of: guessedPlayerIDs)
     }
 
     private func resetGameplayState() {
@@ -1210,10 +1469,16 @@ final class RoomConnectionManager: ObservableObject {
         wordChoices = []
         currentSecretWord = nil
         wordToDraw = nil
+        resetWordHintState()
         remainingSeconds = 0
         currentRound = 0
         gamePlayerIDs = []
         guessedPlayerIDs = []
+        playerScores = []
+        finalRankings = []
+        roundEligibleGuesserIDs = []
+        roundGuessPoints = [:]
+        hasAwardedDrawerForCurrentTurn = false
         activeWordDrops.removeAll()
         sketchTools.reset()
     }
@@ -1227,8 +1492,12 @@ final class RoomConnectionManager: ObservableObject {
         wordChoices = []
         currentSecretWord = nil
         wordToDraw = nil
+        resetWordHintState()
         remainingSeconds = 0
         guessedPlayerIDs = []
+        roundEligibleGuesserIDs = []
+        roundGuessPoints = [:]
+        hasAwardedDrawerForCurrentTurn = false
         activeWordDrops.removeAll()
         sketchTools.reset()
     }
@@ -1256,7 +1525,8 @@ final class RoomConnectionManager: ObservableObject {
                 .startGame(
                     roomID: roomID,
                     currentDrawerID: drawerID,
-                    roundNumber: currentRound
+                    roundNumber: currentRound,
+                    playerScores: playerScores
                 )
             )
         } else {
@@ -1264,7 +1534,8 @@ final class RoomConnectionManager: ObservableObject {
                 .drawingTurn(
                     roomID: roomID,
                     currentDrawerID: drawerID,
-                    roundNumber: currentRound
+                    roundNumber: currentRound,
+                    playerScores: playerScores
                 )
             )
         }
@@ -1293,9 +1564,15 @@ final class RoomConnectionManager: ObservableObject {
 
         currentSecretWord = word
         wordToDraw = currentDrawerID == localPlayerID ? word : nil
+        prepareWordHint(for: word)
         pendingWordChoices = []
         wordChoices = []
         guessedPlayerIDs = []
+        roundEligibleGuesserIDs = Set(
+            playerIDs.filter { $0 != currentDrawerID }
+        )
+        roundGuessPoints = [:]
+        hasAwardedDrawerForCurrentTurn = false
         activeWordDrops.removeAll()
         sketchTools.reset()
         gamePhase = .drawing
@@ -1304,7 +1581,8 @@ final class RoomConnectionManager: ObservableObject {
             .roundStarted(
                 roomID: roomID,
                 currentDrawerID: currentDrawerID,
-                remainingSeconds: gameSettings.timeLimit
+                remainingSeconds: gameSettings.timeLimit,
+                wordHint: wordHint
             )
         )
         startRoundCountdown(
@@ -1329,6 +1607,9 @@ final class RoomConnectionManager: ObservableObject {
                 }
                 guard !Task.isCancelled else { return }
                 self.remainingSeconds -= 1
+                if hostControlsRound {
+                    self.revealNextHintLetterIfNeeded()
+                }
             }
 
             guard hostControlsRound,
@@ -1368,7 +1649,38 @@ final class RoomConnectionManager: ObservableObject {
 
         roundTimerTask?.cancel()
         roundTimerTask = nil
+        awardDrawerForCurrentTurn()
+        broadcastGuessStatus()
         advanceDrawingTurn()
+    }
+
+    private func awardDrawerForCurrentTurn() {
+        guard !hasAwardedDrawerForCurrentTurn,
+              let currentDrawerID else {
+            return
+        }
+
+        hasAwardedDrawerForCurrentTurn = true
+        let correctPoints = roundEligibleGuesserIDs.compactMap {
+            roundGuessPoints[$0]
+        }
+        guard !correctPoints.isEmpty,
+              !roundEligibleGuesserIDs.isEmpty else {
+            return
+        }
+
+        let averagePoints = Double(correctPoints.reduce(0, +))
+            / Double(correctPoints.count)
+        let participation = Double(correctPoints.count)
+            / Double(roundEligibleGuesserIDs.count)
+        let drawerPoints = Int(
+            (
+                averagePoints
+                    * (0.5 + 0.5 * participation)
+                    * 0.90
+            ).rounded()
+        )
+        addPoints(min(max(drawerPoints, 0), 100), to: currentDrawerID)
     }
 
     private func advanceDrawingTurn(
@@ -1431,8 +1743,51 @@ final class RoomConnectionManager: ObservableObject {
             return
         }
 
-        broadcast(.gameEnded(roomID: roomID))
-        resetGameplayState()
+        let rankings = sortedRankings(from: playerScores)
+        broadcast(
+            .gameEnded(
+                roomID: roomID,
+                playerScores: rankings
+            )
+        )
+        completeGame(with: rankings)
+    }
+
+    private func completeGame(with rankings: [RoomPlayerScore]) {
+        roundTimerTask?.cancel()
+        roundTimerTask = nil
+        isGameStarted = false
+        gamePhase = .lobby
+        currentDrawerID = nil
+        pendingWordChoices = []
+        wordChoices = []
+        currentSecretWord = nil
+        wordToDraw = nil
+        resetWordHintState()
+        remainingSeconds = 0
+        currentRound = 0
+        gamePlayerIDs = []
+        guessedPlayerIDs = []
+        roundEligibleGuesserIDs = []
+        roundGuessPoints = [:]
+        hasAwardedDrawerForCurrentTurn = false
+        activeWordDrops.removeAll()
+        sketchTools.reset()
+        playerScores = rankings
+        finalRankings = sortedRankings(from: rankings)
+    }
+
+    private func sortedRankings(
+        from scores: [RoomPlayerScore]
+    ) -> [RoomPlayerScore] {
+        scores.sorted { first, second in
+            if first.points == second.points {
+                return first.playerName.localizedCaseInsensitiveCompare(
+                    second.playerName
+                ) == .orderedAscending
+            }
+            return first.points > second.points
+        }
     }
 
     private func sendGameSnapshot(
@@ -1458,7 +1813,8 @@ final class RoomConnectionManager: ObservableObject {
             .startGame(
                 roomID: roomID,
                 currentDrawerID: currentDrawerID,
-                roundNumber: currentRound
+                roundNumber: currentRound,
+                playerScores: playerScores
             ),
             through: peer
         )
@@ -1482,7 +1838,8 @@ final class RoomConnectionManager: ObservableObject {
                 .roundStarted(
                     roomID: roomID,
                     currentDrawerID: currentDrawerID,
-                    remainingSeconds: max(remainingSeconds, 1)
+                    remainingSeconds: max(remainingSeconds, 1),
+                    wordHint: wordHint
                 ),
                 through: peer
             )
@@ -1497,7 +1854,8 @@ final class RoomConnectionManager: ObservableObject {
             send(
                 .guessStatus(
                     roomID: roomID,
-                    guessedPlayerIDs: orderedGuessedPlayerIDs
+                    guessedPlayerIDs: orderedGuessedPlayerIDs,
+                    playerScores: playerScores
                 ),
                 through: peer
             )
@@ -1531,6 +1889,21 @@ final class RoomConnectionManager: ObservableObject {
         playerIDs = [localPlayerID] + guests.map { $0.playerID }
         gamePlayerIDs.removeAll { !playerIDs.contains($0) }
         guessedPlayerIDs.formIntersection(playerIDs)
+        roundEligibleGuesserIDs.formIntersection(playerIDs)
+        if isGameStarted {
+            playerScores.removeAll { !playerIDs.contains($0.playerID) }
+            let scoredPlayerIDs = Set(playerScores.map(\.playerID))
+            for (playerID, playerName) in zip(playerIDs, players)
+            where !scoredPlayerIDs.contains(playerID) {
+                playerScores.append(
+                    RoomPlayerScore(
+                        playerID: playerID,
+                        playerName: playerName,
+                        points: 0
+                    )
+                )
+            }
+        }
 
         broadcast(
             .roster(
@@ -1575,7 +1948,8 @@ final class RoomConnectionManager: ObservableObject {
         broadcast(
             .guessStatus(
                 roomID: roomID,
-                guessedPlayerIDs: orderedGuessedPlayerIDs
+                guessedPlayerIDs: orderedGuessedPlayerIDs,
+                playerScores: playerScores
             )
         )
     }

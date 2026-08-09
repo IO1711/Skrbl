@@ -36,11 +36,17 @@ private struct AnimatedWordDrop: View {
     let word: WordDrop
     let containerSize: CGSize
 
+    private let fallDuration = 4.0
+    private let fadeDelay = 2.2
+    private let fadeDuration = 1.8
+
     @State private var verticalProgress = 0.0
     @State private var opacity = 1.0
 
     var body: some View {
-        let maximumWordWidth = min(max(containerSize.width - 24, 0), 220)
+        let maximumWordWidth = min(max(containerSize.width - 20, 0), 190)
+        let initialY: CGFloat = 32
+        let fallDistance = max(containerSize.height / 2 - initialY, 0)
         let horizontalMargin = min(
             maximumWordWidth / 2 + 8,
             containerSize.width / 2
@@ -51,39 +57,58 @@ private struct AnimatedWordDrop: View {
         )
         let xPosition = horizontalMargin + availableWidth * horizontalPosition
 
-        Text(word.text)
-            .font(AppTheme.font(size: 20))
-            .lineLimit(1)
-            .minimumScaleFactor(0.65)
-            .foregroundStyle(AppTheme.text)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: maximumWordWidth)
-            .background(Color.clear)
-            .overlay {
-                Capsule()
-                    .stroke(AppTheme.text, lineWidth: 1.5)
-            }
-            .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
-            .position(x: xPosition, y: 28)
-            .offset(y: containerSize.height * 0.30 * verticalProgress)
-            .opacity(opacity)
-            .task(id: word.id) {
-                await Task.yield()
-                withAnimation(.easeInOut(duration: 3.8)) {
-                    verticalProgress = 1
-                }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(word.playerName)
+                .font(AppTheme.font(size: 11))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
-                do {
-                    try await Task.sleep(for: .seconds(2.3))
-                } catch {
-                    return
-                }
+            Text(word.text)
+                .font(AppTheme.font(size: 18))
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+        }
+        .foregroundStyle(AppTheme.text)
+        .multilineTextAlignment(.leading)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+        .frame(maxWidth: maximumWordWidth, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(AppTheme.background)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.text, lineWidth: 1.5)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
+        .position(x: xPosition, y: initialY)
+        .offset(y: fallDistance * verticalProgress)
+        .opacity(opacity)
+        .task(id: word.id) {
+            verticalProgress = 0
+            opacity = 1
 
-                withAnimation(.easeOut(duration: 1.5)) {
-                    opacity = 0
-                }
+            do {
+                try await Task.sleep(for: .milliseconds(50))
+            } catch {
+                return
             }
+
+            withAnimation(.linear(duration: fallDuration)) {
+                verticalProgress = 1
+            }
+
+            do {
+                try await Task.sleep(for: .seconds(fadeDelay))
+            } catch {
+                return
+            }
+
+            withAnimation(.linear(duration: fadeDuration)) {
+                opacity = 0
+            }
+        }
     }
 }
 
@@ -96,16 +121,19 @@ private struct AnimatedWordDrop: View {
             words: [
                 WordDrop(
                     id: UUID(),
+                    playerName: "Alex",
                     text: "Sketch",
                     horizontalPosition: 0.2
                 ),
                 WordDrop(
                     id: UUID(),
+                    playerName: "Maya",
                     text: "Almost there!",
                     horizontalPosition: 0.55
                 ),
                 WordDrop(
                     id: UUID(),
+                    playerName: "Sam",
                     text: "Pencil",
                     horizontalPosition: 0.85
                 )

@@ -7,6 +7,7 @@
 
 import Combine
 import SwiftUI
+import UIKit
 
 enum SketchTool: String, CaseIterable, Identifiable {
     case brush
@@ -83,6 +84,21 @@ enum SketchColor: String, Codable, CaseIterable, Identifiable {
             blue: Double(rgba.blue) / 255,
             opacity: Double(rgba.alpha) / 255
         )
+    }
+
+    func menuIcon(isSelected: Bool) -> Image {
+        let rgba = rgba
+        let uiColor = UIColor(
+            red: CGFloat(rgba.red) / 255,
+            green: CGFloat(rgba.green) / 255,
+            blue: CGFloat(rgba.blue) / 255,
+            alpha: CGFloat(rgba.alpha) / 255
+        )
+        let symbolName = isSelected ? "checkmark.circle.fill" : "circle.fill"
+        let image = UIImage(systemName: symbolName)?
+            .withTintColor(uiColor, renderingMode: .alwaysOriginal)
+
+        return Image(uiImage: image ?? UIImage())
     }
 }
 
@@ -431,12 +447,11 @@ struct SketchToolbar: View {
                 Button {
                     tools.selectedColor = color
                 } label: {
-                    Label(
-                        color.displayName,
-                        systemImage: tools.selectedColor == color
-                            ? "checkmark.circle.fill"
-                            : "circle.fill"
-                    )
+                    Label {
+                        Text(color.displayName)
+                    } icon: {
+                        color.menuIcon(isSelected: tools.selectedColor == color)
+                    }
                 }
             }
         } label: {

@@ -5,36 +5,84 @@
 //  Created by Codex on 31/07/2026.
 //
 
+import Combine
 import SwiftUI
+import UIKit
+
+private struct GuessFieldFramePreferenceKey: PreferenceKey {
+    static var defaultValue = CGRect.null
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
 
 struct SharedSketchSessionView: View {
     @ObservedObject var connection: RoomConnectionManager
     @State private var viewerWord = ""
+    @State private var keyboardOverlap: CGFloat = 0
+    @State private var guessFieldFrame = CGRect.null
+    @FocusState private var isViewerWordFocused: Bool
 
     var body: some View {
-        ZStack(alignment: .top) {
-            VStack(spacing: 0) {
-                turnStatus
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    turnStatus
 
-                if connection.gamePhase == .drawing {
-                    guessProgress
+                    if connection.gamePhase == .drawing {
+                        guessProgress
+
+                        if !connection.wordHint.isEmpty {
+                            wordHintStrip
+                        }
+                    }
+
+                    gameplayContent
+
+                    if connection.canSubmitWord {
+                        wordComposer
+                            .offset(y: -keyboardOverlap)
+                    } else if connection.gamePhase == .drawing,
+                              connection.localPlayerHasGuessed {
+                        correctGuessBanner
+                    }
                 }
 
-                gameplayContent
-
-                if connection.canSubmitWord {
-                    wordComposer
-                } else if connection.gamePhase == .drawing,
-                          connection.localPlayerHasGuessed {
-                    correctGuessBanner
-                }
+                WordDropOverlay(words: connection.activeWordDrops)
             }
-
-            WordDropOverlay(words: connection.activeWordDrops)
+            .coordinateSpace(name: "gameSession")
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height
+            )
+            .onPreferenceChange(GuessFieldFramePreferenceKey.self) {
+                guessFieldFrame = $0
+            }
+            .simultaneousGesture(
+                SpatialTapGesture().onEnded { value in
+                    guard isViewerWordFocused,
+                          !guessFieldFrame.contains(value.location) else {
+                        return
+                    }
+                    isViewerWordFocused = false
+                }
+            )
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: UIResponder.keyboardWillChangeFrameNotification
+                )
+            ) { notification in
+                updateKeyboardOverlap(notification, in: geometry)
+            }
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .mainBackground()
         .onChange(of: connection.currentDrawerID) {
             viewerWord = ""
+            isViewerWordFocused = false
+            keyboardOverlap = 0
+            guessFieldFrame = .null
         }
     }
 
@@ -82,6 +130,16 @@ struct SharedSketchSessionView: View {
 
             Spacer()
 
+            Text("\(connection.localPlayerScore) pts")
+                .font(AppTheme.font(size: 13))
+                .monospacedDigit()
+                .padding(.horizontal, 9)
+                .padding(.vertical, 6)
+                .overlay {
+                    Capsule()
+                        .stroke(AppTheme.text, lineWidth: 1.5)
+                }
+
             if connection.gamePhase == .drawing {
                 Label(formattedTime, systemImage: "timer")
                     .font(AppTheme.font(size: 15))
@@ -116,7 +174,7 @@ struct SharedSketchSessionView: View {
                         let hasGuessed = connection.hasGuessed(playerID: playerID)
 
                         Label(
-                            playerName,
+                            "\(playerName) • \(connection.score(for: playerID)) pts",
                             systemImage: hasGuessed
                                 ? "checkmark.circle.fill"
                                 : "circle"
@@ -145,6 +203,23 @@ struct SharedSketchSessionView: View {
         .overlay(alignment: .bottom) {
             Divider()
         }
+    }
+
+    private var wordHintStrip: some View {
+        Text(connection.wordHint)
+            .font(AppTheme.font(size: 20))
+            .foregroundStyle(AppTheme.text)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.65)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(AppTheme.background)
+            .overlay(alignment: .bottom) {
+                Divider()
+            }
+            .accessibilityLabel("Word hint: \(connection.wordHint)")
     }
 
     private var wordChoicePanel: some View {
@@ -217,6 +292,15 @@ struct SharedSketchSessionView: View {
         HStack(spacing: 10) {
             TextField("Type your guess", text: $viewerWord)
                 .textFieldStyle(WhiteOutlineTextFieldStyle())
+                .focused($isViewerWordFocused)
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: GuessFieldFramePreferenceKey.self,
+                            value: geometry.frame(in: .named("gameSession"))
+                        )
+                    }
+                }
                 .textInputAutocapitalization(.never)
                 .submitLabel(.send)
                 .onSubmit(sendWord)
@@ -245,7 +329,10 @@ struct SharedSketchSessionView: View {
     }
 
     private var correctGuessBanner: some View {
-        Label("Correct! Waiting for the next round", systemImage: "checkmark.circle.fill")
+        Label(
+            "Correct! Score: \(connection.localPlayerScore) points",
+            systemImage: "checkmark.circle.fill"
+        )
             .font(AppTheme.font(size: 17))
             .foregroundStyle(.green)
             .frame(maxWidth: .infinity)
@@ -307,6 +394,28 @@ struct SharedSketchSessionView: View {
     private func sendWord() {
         if connection.sendWord(viewerWord) {
             viewerWord = ""
+        }
+    }
+
+    private func updateKeyboardOverlap(
+        _ notification: Notification,
+        in geometry: GeometryProxy
+    ) {
+        guard let keyboardFrame = notification.userInfo?[
+            UIResponder.keyboardFrameEndUserInfoKey
+        ] as? CGRect else {
+            return
+        }
+
+        let viewFrame = geometry.frame(in: .global)
+        let overlap = max(viewFrame.maxY - keyboardFrame.minY, 0)
+        let duration = (
+            notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
+                as? NSNumber
+        )?.doubleValue ?? 0.25
+
+        withAnimation(.easeOut(duration: duration)) {
+            keyboardOverlap = isViewerWordFocused ? overlap : 0
         }
     }
 }
