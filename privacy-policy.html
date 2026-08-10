@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Privacy policy and support information for Skrbl.">
+  <meta name="theme-color" content="#0b351c">
+  <title>Skrbl — Privacy &amp; Support</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --board: #0b351c;
+      --board-deep: #062511;
+      --paper: #f8f2d7;
+      --chalk: #fffbed;
+      --muted: #c8d4bc;
+      --yellow: #ffc857;
+      --green: #7de3a4;
+      --line: rgba(255, 251, 237, 0.17);
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--board-deep);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--chalk);
+      background:
+        radial-gradient(circle at 8% 4%, rgba(125, 227, 164, 0.12), transparent 26rem),
+        radial-gradient(circle at 94% 96%, rgba(255, 200, 87, 0.1), transparent 28rem),
+        linear-gradient(135deg, var(--board), var(--board-deep));
+      font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    a:focus-visible {
+      outline: 3px solid var(--yellow);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+
+    .site-header {
+      width: min(1080px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 12px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--chalk);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 13px;
+      color: #19301e;
+      background: var(--yellow);
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.14), 0 8px 24px var(--shadow);
+      font-size: 23px;
+      font-weight: 900;
+      transform: rotate(-3deg);
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: var(--chalk);
+    }
+
+    main {
+      width: min(1080px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 54px 0 28px;
+    }
+
+    .hero {
+      max-width: 780px;
+      padding: 20px 0 72px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 18px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 24px;
+      height: 3px;
+      border-radius: 999px;
+      background: currentColor;
+      content: "";
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin-bottom: 22px;
+      font-size: clamp(44px, 8vw, 78px);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .hero-copy {
+      max-width: 650px;
+      margin-bottom: 28px;
+      color: var(--muted);
+      font-size: clamp(18px, 2.4vw, 22px);
+      line-height: 1.55;
+    }
+
+    .promise-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .promise-row li {
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--paper);
+      background: rgba(255, 255, 255, 0.045);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.7fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      background: rgba(7, 40, 19, 0.78);
+      box-shadow: 0 28px 80px var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .policy {
+      padding: clamp(26px, 5vw, 52px);
+    }
+
+    .policy h2,
+    .support h2 {
+      margin-bottom: 8px;
+      font-size: clamp(27px, 4vw, 38px);
+      line-height: 1.15;
+      letter-spacing: -0.035em;
+    }
+
+    .updated {
+      margin-bottom: 38px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .policy-section + .policy-section {
+      margin-top: 34px;
+      padding-top: 34px;
+      border-top: 1px solid var(--line);
+    }
+
+    .policy h3 {
+      margin-bottom: 10px;
+      color: var(--paper);
+      font-size: 19px;
+      letter-spacing: -0.015em;
+    }
+
+    .policy p,
+    .policy li {
+      color: var(--muted);
+    }
+
+    .policy p:last-child {
+      margin-bottom: 0;
+    }
+
+    .policy ul {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0 0;
+      padding-left: 21px;
+    }
+
+    .policy strong {
+      color: var(--chalk);
+    }
+
+    .support {
+      position: sticky;
+      top: 22px;
+      padding: 30px;
+      background:
+        linear-gradient(155deg, rgba(255, 200, 87, 0.13), transparent 58%),
+        rgba(7, 40, 19, 0.86);
+    }
+
+    .support p {
+      margin: 0 0 22px;
+      color: var(--muted);
+    }
+
+    .contact-button {
+      display: inline-flex;
+      width: 100%;
+      min-height: 50px;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 16px;
+      border-radius: 14px;
+      color: #19301e;
+      background: var(--yellow);
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.14);
+      font-size: 14px;
+      font-weight: 850;
+      text-align: center;
+      text-decoration: none;
+      transition: transform 160ms ease, filter 160ms ease;
+    }
+
+    .contact-button:hover {
+      filter: brightness(1.05);
+      transform: translateY(-2px);
+    }
+
+    .email-label {
+      display: block;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+
+    .quick-help {
+      margin-top: 28px;
+      padding-top: 26px;
+      border-top: 1px solid var(--line);
+    }
+
+    .quick-help h3 {
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+
+    .quick-help ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      color: var(--muted);
+      font-size: 13px;
+      list-style: none;
+    }
+
+    .quick-help li::before {
+      margin-right: 8px;
+      color: var(--green);
+      content: "✓";
+      font-weight: 900;
+    }
+
+    footer {
+      width: min(1080px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 38px 0 44px;
+      color: #91a78d;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 780px) {
+      .site-header,
+      main,
+      footer {
+        width: min(100% - 28px, 680px);
+      }
+
+      .site-header {
+        padding-top: 18px;
+      }
+
+      .nav-links {
+        gap: 14px;
+        font-size: 13px;
+      }
+
+      main {
+        padding-top: 34px;
+      }
+
+      .hero {
+        padding-bottom: 48px;
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .support {
+        position: static;
+        order: -1;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .brand-name {
+        display: none;
+      }
+
+      .nav-links {
+        gap: 12px;
+      }
+
+      h1 {
+        font-size: 46px;
+      }
+
+      .policy,
+      .support {
+        padding: 24px;
+        border-radius: 20px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .contact-button {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="Skrbl home">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span class="brand-name">Skrbl</span>
+      </a>
+      <div class="nav-links">
+        <a href="#privacy">Privacy</a>
+        <a href="#support">Support</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Privacy, kept simple</p>
+      <h1 id="page-title">Your drawings stay in the room.</h1>
+      <p class="hero-copy">
+        Skrbl is designed for nearby play. We do not collect, store, sell, or share your personal data.
+      </p>
+      <ul class="promise-row" aria-label="Privacy highlights">
+        <li>No accounts</li>
+        <li>No analytics</li>
+        <li>No advertising</li>
+        <li>No cloud storage</li>
+      </ul>
+    </section>
+
+    <div class="content-grid">
+      <article class="card policy" id="privacy">
+        <h2>Privacy Policy</h2>
+        <p class="updated">Effective date: August 11, 2026</p>
+
+        <section class="policy-section">
+          <h3>Information we collect</h3>
+          <p>
+            <strong>We do not collect personal information or usage data.</strong> Skrbl does not require an account and does not send information to servers controlled by us.
+          </p>
+        </section>
+
+        <section class="policy-section">
+          <h3>Nearby multiplayer</h3>
+          <p>
+            When you join a nearby game, Skrbl uses your device’s local network or Bluetooth connection to communicate directly with other devices in that game. Session information—such as a display name, game activity, and drawings—may be visible to the other participants in the room while you play.
+          </p>
+          <p>
+            This information is used only to provide the multiplayer session. We do not receive it, store it on an external server, or share it with third parties. Session information is temporary and is not retained by Skrbl after the session ends.
+          </p>
+        </section>
+
+        <section class="policy-section">
+          <h3>Camera, local network, and Bluetooth</h3>
+          <ul>
+            <li><strong>Camera:</strong> used only when you choose to scan a room QR code. The camera image is processed on your device and is not saved or uploaded by Skrbl.</li>
+            <li><strong>Local network:</strong> used to discover and connect to nearby game rooms on the same Wi‑Fi network.</li>
+            <li><strong>Bluetooth:</strong> used to discover and connect to nearby game rooms when you choose Bluetooth play.</li>
+          </ul>
+          <p>
+            You can control these permissions at any time in your device’s Settings app.
+          </p>
+        </section>
+
+        <section class="policy-section">
+          <h3>Data storage and third parties</h3>
+          <p>
+            Skrbl does not store your personal data, use cookies or tracking technologies, include advertising, or use third-party analytics. We do not sell, rent, or disclose personal information to third parties because we do not collect it.
+          </p>
+        </section>
+
+        <section class="policy-section">
+          <h3>Children’s privacy</h3>
+          <p>
+            Skrbl does not knowingly collect personal information from children or anyone else. If you believe you have a privacy concern, please contact us using the support information on this page.
+          </p>
+        </section>
+
+        <section class="policy-section">
+          <h3>Changes to this policy</h3>
+          <p>
+            If Skrbl’s privacy practices change, this policy will be updated and the new effective date will be shown above.
+          </p>
+        </section>
+      </article>
+
+      <aside class="card support" id="support" aria-labelledby="support-title">
+        <p class="eyebrow">Need a hand?</p>
+        <h2 id="support-title">Skrbl Support</h2>
+        <p>
+          For help, feedback, or privacy questions, email the developer. Include your device model and a short description of the issue when relevant.
+        </p>
+        <a class="contact-button" href="mailto:rayimovbilolbek@gmail.com?subject=Skrbl%20Support">
+          Email support
+        </a>
+        <span class="email-label">rayimovbilolbek@gmail.com</span>
+
+        <div class="quick-help">
+          <h3>We can help with</h3>
+          <ul>
+            <li>Connecting to a room</li>
+            <li>Camera or QR scanning</li>
+            <li>Privacy questions</li>
+            <li>Feedback and bug reports</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Skrbl. All rights reserved.
+  </footer>
+</body>
+</html>

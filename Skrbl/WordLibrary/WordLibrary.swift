@@ -13,6 +13,22 @@ enum WordTopic: String, Codable, CaseIterable, Identifiable {
     case food
     case carBrands
     case vegetable
+    case countries
+    case professions
+    case house
+    case school
+    case kitchenTools
+    case weapons
+    case superheroes
+    case villains
+    case cartoonCharacters
+    case videoGameCharacters
+    case generalMythology
+    case greekMythology
+    case norseMythology
+    case egyptianMythology
+    case chineseMythology
+    case indianMythology
 
     var id: String {
         rawValue
@@ -30,6 +46,38 @@ enum WordTopic: String, Codable, CaseIterable, Identifiable {
             "Car Brands"
         case .vegetable:
             "Vegetable"
+        case .countries:
+            "Countries"
+        case .professions:
+            "Professions"
+        case .house:
+            "House"
+        case .school:
+            "School"
+        case .kitchenTools:
+            "Kitchen Tools"
+        case .weapons:
+            "Weapons"
+        case .superheroes:
+            "Superheroes"
+        case .villains:
+            "Villains"
+        case .cartoonCharacters:
+            "Cartoon Characters"
+        case .videoGameCharacters:
+            "Video Game Characters"
+        case .generalMythology:
+            "General Mythology"
+        case .greekMythology:
+            "Greek Mythology"
+        case .norseMythology:
+            "Norse Mythology"
+        case .egyptianMythology:
+            "Egyptian Mythology"
+        case .chineseMythology:
+            "Chinese Mythology"
+        case .indianMythology:
+            "Indian Mythology"
         }
     }
 
@@ -45,6 +93,38 @@ enum WordTopic: String, Codable, CaseIterable, Identifiable {
             "CarBrands"
         case .vegetable:
             "Vegetable"
+        case .countries:
+            "Countries"
+        case .professions:
+            "Professions"
+        case .house:
+            "House"
+        case .school:
+            "School"
+        case .kitchenTools:
+            "KitchenTools"
+        case .weapons:
+            "Weapons"
+        case .superheroes:
+            "Superheroes"
+        case .villains:
+            "Villains"
+        case .cartoonCharacters:
+            "CartoonCharacters"
+        case .videoGameCharacters:
+            "VideoGameCharacters"
+        case .generalMythology:
+            "GeneralMythology"
+        case .greekMythology:
+            "GreekMythology"
+        case .norseMythology:
+            "NorseMythology"
+        case .egyptianMythology:
+            "EgyptianMythology"
+        case .chineseMythology:
+            "ChineseMythology"
+        case .indianMythology:
+            "IndianMythology"
         }
     }
 }
