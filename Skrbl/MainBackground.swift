@@ -54,65 +54,6 @@ private struct MainBackground: View {
     }
 }
 
-private struct ChalkBackButtonModifier: ViewModifier {
-    @Environment(\.dismiss) private var dismiss
-    let action: (() -> Void)?
-
-    func body(content: Content) -> some View {
-        content
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        if let action {
-                            action()
-                        } else {
-                            dismiss()
-                        }
-                    } label: {
-                        Image("back_chalk")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 32, height: 32)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Back")
-                }
-                .sharedBackgroundVisibility(.hidden)
-            }
-    }
-}
-
-private struct EdgeSwipeBackModifier: ViewModifier {
-    let isEnabled: Bool
-    let action: () -> Void
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if isEnabled {
-            content.simultaneousGesture(
-                DragGesture(minimumDistance: 20, coordinateSpace: .local)
-                    .onEnded { value in
-                        let horizontalDistance = value.translation.width
-                        let verticalDistance = abs(value.translation.height)
-
-                        guard value.startLocation.x <= 32,
-                              horizontalDistance >= 80,
-                              horizontalDistance > verticalDistance * 1.25 else {
-                            return
-                        }
-
-                        action()
-                    }
-            )
-        } else {
-            content
-        }
-    }
-}
-
 extension View {
     func appTextStyle(_ style: AppTheme.TextStyle) -> some View {
         modifier(style)
@@ -134,21 +75,6 @@ extension View {
             }
     }
 
-    func chalkBackButton(action: (() -> Void)? = nil) -> some View {
-        modifier(ChalkBackButtonModifier(action: action))
-    }
-
-    func edgeSwipeBack(
-        isEnabled: Bool = true,
-        action: @escaping () -> Void
-    ) -> some View {
-        modifier(
-            EdgeSwipeBackModifier(
-                isEnabled: isEnabled,
-                action: action
-            )
-        )
-    }
 }
 
 struct WhiteOutlineButtonStyle: ButtonStyle {

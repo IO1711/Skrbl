@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skrbl Topic Workshop</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #071f12;
+      --panel: #0c2c1a;
+      --panel-strong: #123a23;
+      --panel-soft: #16472b;
+      --line: rgba(237, 245, 221, 0.16);
+      --line-strong: rgba(237, 245, 221, 0.34);
+      --text: #f4f1df;
+      --muted: #b8c6ad;
+      --chalk: #f5efc7;
+      --accent: #ffc857;
+      --accent-strong: #f2a93b;
+      --success: #64d991;
+      --danger: #ff8a7a;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+      --radius-xl: 24px;
+      --radius-lg: 17px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: var(--page);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(100, 217, 145, 0.12), transparent 25rem),
+        radial-gradient(circle at 96% 94%, rgba(255, 200, 87, 0.09), transparent 30rem),
+        var(--page);
+      font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, -apple-system, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(255, 200, 87, 0.55);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: rgba(12, 44, 26, 0.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      color: #17311f;
+      background: var(--accent);
+      font-size: 24px;
+      font-weight: 900;
+      transform: rotate(-3deg);
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: var(--chalk);
+      font-size: clamp(20px, 3vw, 28px);
+      letter-spacing: -0.03em;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .folder-tools {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .folder-status {
+      max-width: 260px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .workspace {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: rgba(12, 44, 26, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: hidden;
+    }
+
+    .sidebar-head {
+      padding: 20px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-head h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+    }
+
+    .search-field,
+    .add-field {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      background: rgba(4, 23, 12, 0.74);
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .search-field {
+      height: 42px;
+      padding: 0 13px;
+    }
+
+    .search-field:hover,
+    .add-field:hover {
+      border-color: var(--line-strong);
+    }
+
+    input::placeholder {
+      color: #7f967f;
+    }
+
+    .topic-nav {
+      display: grid;
+      gap: 6px;
+      max-height: calc(100vh - 167px);
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .topic-button {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 52px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 13px;
+      text-align: left;
+      background: transparent;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+    }
+
+    .topic-button:hover {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .topic-button.active {
+      border-color: rgba(255, 200, 87, 0.34);
+      background: rgba(255, 200, 87, 0.12);
+    }
+
+    .topic-button:active {
+      transform: scale(0.985);
+    }
+
+    .topic-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.065);
+      font-size: 18px;
+    }
+
+    .topic-name {
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 720;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topic-count {
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dirty-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-left: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      vertical-align: middle;
+    }
+
+    .workspace {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .workspace-head {
+      padding: clamp(22px, 4vw, 38px);
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255, 200, 87, 0.09), transparent 48%),
+        rgba(18, 58, 35, 0.42);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .title-copy {
+      min-width: 0;
+    }
+
+    .title-copy h2 {
+      margin: 0;
+      color: var(--chalk);
+      font-size: clamp(30px, 5vw, 46px);
+      letter-spacing: -0.045em;
+      line-height: 1;
+    }
+
+    .title-copy p {
+      max-width: 720px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .counter-card {
+      min-width: 112px;
+      padding: 13px 16px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      text-align: center;
+      background: rgba(4, 23, 12, 0.5);
+    }
+
+    .counter-card strong {
+      display: block;
+      color: var(--accent);
+      font-size: 25px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .counter-card span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .editor-tools {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.7fr);
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 9px;
+    }
+
+    .add-field {
+      min-width: 0;
+      height: 46px;
+      padding: 0 14px;
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 0 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 13px;
+      font-weight: 760;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .button:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.085);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button.primary {
+      border-color: transparent;
+      color: #1c2b1f;
+      background: var(--accent);
+      box-shadow: inset 0 -3px 0 rgba(85, 49, 0, 0.2);
+    }
+
+    .button.primary:hover {
+      background: #ffd371;
+    }
+
+    .button.small {
+      min-height: 38px;
+      padding: 0 12px;
+      font-size: 12px;
+    }
+
+    .button.danger:hover {
+      border-color: rgba(255, 138, 122, 0.55);
+      color: #ffd2cb;
+      background: rgba(255, 138, 122, 0.09);
+    }
+
+    .word-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px clamp(22px, 4vw, 38px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .word-toolbar-info {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .word-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .word-grid-wrap {
+      min-height: 380px;
+      padding: clamp(20px, 4vw, 38px);
+    }
+
+    .word-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 10px;
+    }
+
+    .word-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 9px 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.035);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 150ms ease, background 150ms ease, opacity 150ms ease;
+    }
+
+    .word-card:hover {
+      border-color: var(--line-strong);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .word-card.selected {
+      border-color: rgba(100, 217, 145, 0.35);
+      background: rgba(100, 217, 145, 0.09);
+    }
+
+    .word-card:not(.selected) {
+      opacity: 0.52;
+    }
+
+    .word-card input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .checkmark {
+      display: grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      color: transparent;
+      background: rgba(0, 0, 0, 0.13);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .word-card.selected .checkmark {
+      border-color: transparent;
+      color: #11351f;
+      background: var(--success);
+    }
+
+    .word-label {
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 260px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px clamp(22px, 4vw, 38px);
+      border-top: 1px solid var(--line);
+      background: rgba(10, 39, 22, 0.94);
+      backdrop-filter: blur(18px);
+    }
+
+    .save-copy strong,
+    .save-copy span {
+      display: block;
+    }
+
+    .save-copy strong {
+      font-size: 13px;
+    }
+
+    .save-copy span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .save-button {
+      min-width: 178px;
+      min-height: 48px;
+    }
+
+    .toast-region {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 30;
+      display: grid;
+      gap: 10px;
+      width: min(380px, calc(100vw - 40px));
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 13px 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 13px;
+      color: var(--text);
+      background: #173e26;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+      font-size: 13px;
+      line-height: 1.4;
+      animation: toast-in 180ms ease-out;
+    }
+
+    .toast.error {
+      border-color: rgba(255, 138, 122, 0.5);
+      background: #4a2522;
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+      .app-shell {
+        padding: 14px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .folder-tools {
+        max-width: 250px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        max-height: none;
+      }
+
+      .topic-nav {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(180px, 230px);
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      .editor-tools {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar,
+      .title-row,
+      .word-toolbar,
+      .save-bar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .topbar {
+        display: flex;
+      }
+
+      .folder-tools {
+        align-items: stretch;
+        max-width: none;
+      }
+
+      .folder-status {
+        max-width: none;
+      }
+
+      .counter-card {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 7px;
+      }
+
+      .add-form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+      }
+
+      .word-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .save-button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .word-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">S</div>
+        <div>
+          <h1>Skrbl Topic Workshop</h1>
+          <p>Curate drawing words and export game-ready JSON.</p>
+        </div>
+      </div>
+      <div class="folder-tools">
+        <span class="folder-status" id="folderStatus">Choose this project folder for direct saves.</span>
+        <button class="button small" id="chooseFolderButton" type="button">Choose JSON folder</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Topics">
+        <div class="sidebar-head">
+          <p class="eyebrow">20 collections</p>
+          <h2>Topics</h2>
+          <input class="search-field" id="topicSearch" type="search" placeholder="Find a topic…" autocomplete="off">
+        </div>
+        <nav class="topic-nav" id="topicNav"></nav>
+      </aside>
+
+      <section class="workspace" aria-live="polite">
+        <div class="workspace-head">
+          <div class="title-row">
+            <div class="title-copy">
+              <p class="eyebrow" id="topicFile">Animals.json</p>
+              <h2 id="topicTitle">Animals</h2>
+              <p id="topicDescription"></p>
+            </div>
+            <div class="counter-card" aria-label="Selected word count">
+              <strong id="selectedCount">0 / 0</strong>
+              <span>selected</span>
+            </div>
+          </div>
+
+          <div class="editor-tools">
+            <form class="add-form" id="addWordForm">
+              <input class="add-field" id="newWordInput" maxlength="80" placeholder="Add a new word…" autocomplete="off">
+              <button class="button primary" type="submit">Add word</button>
+            </form>
+            <input class="search-field" id="wordSearch" type="search" placeholder="Filter words in this topic…" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="word-toolbar">
+          <span class="word-toolbar-info" id="wordToolbarInfo">Click any word to include or exclude it.</span>
+          <div class="word-actions">
+            <button class="button small" id="selectAllButton" type="button">Select all</button>
+            <button class="button small" id="selectNoneButton" type="button">Select none</button>
+            <button class="button small danger" id="resetButton" type="button">Reset topic</button>
+          </div>
+        </div>
+
+        <div class="word-grid-wrap">
+          <div class="word-grid" id="wordGrid"></div>
+          <div class="empty-state" id="emptyState" hidden>No words match this filter.</div>
+        </div>
+
+        <footer class="save-bar">
+          <div class="save-copy">
+            <strong id="saveSummary">Ready to export</strong>
+            <span>Only selected words are written to the JSON file.</span>
+          </div>
+          <button class="button primary save-button" id="saveButton" type="button">Save Animals.json</button>
+        </footer>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    "use strict";
+
+    const list = (value) => value.split("|").map((word) => word.trim()).filter(Boolean);
+
+    const TOPIC_DEFINITIONS = [
+      {
+        id: "animals",
+        label: "Animals",
+        icon: "🐾",
+        fileName: "Animals.json",
+        description: "Familiar pets, farm animals, wildlife, sea creatures, birds, and insects that are easy to recognize and draw.",
+        words: list(`Cat|Dog|Elephant|Lion|Tiger|Bear|Rabbit|Horse|Cow|Pig|Sheep|Goat|Chicken|Duck|Owl|Penguin|Fish|Shark|Whale|Dolphin|Octopus|Crab|Butterfly|Bee|Ant|Spider|Snake|Frog|Turtle|Crocodile|Monkey|Gorilla|Giraffe|Zebra|Kangaroo|Koala|Panda|Fox|Wolf|Deer|Moose|Camel|Hippopotamus|Rhinoceros|Seal|Walrus|Otter|Beaver|Bat|Eagle|Parrot|Flamingo|Peacock|Swan|Goose|Turkey|Rooster|Donkey|Llama|Alpaca|Cheetah|Leopard|Jaguar|Hyena|Raccoon|Skunk|Hedgehog|Squirrel|Hamster|Mouse|Rat|Guinea Pig|Chameleon|Lizard|Iguana|Alligator|Stingray|Seahorse|Starfish|Jellyfish|Lobster|Shrimp|Squid|Clam|Oyster|Snail|Worm|Grasshopper|Ladybug|Dragonfly|Moth|Beetle|Wasp|Scorpion|Falcon|Hawk|Vulture|Raven|Crow|Pelican|Toucan|Ostrich|Emu|Bison|Buffalo|Yak|Reindeer|Polar Bear|Sloth|Armadillo|Anteater|Platypus|Meerkat|Badger|Wild Boar`)
+      },
+      {
+        id: "fruit",
+        label: "Fruit",
+        icon: "🍉",
+        fileName: "Fruit.json",
+        description: "Popular everyday, tropical, citrus, and berry fruits with distinctive shapes and colors.",
+        words: list(`Apple|Banana|Orange|Lemon|Lime|Strawberry|Blueberry|Raspberry|Blackberry|Grape|Watermelon|Melon|Pineapple|Mango|Peach|Pear|Cherry|Kiwi|Coconut|Pomegranate|Papaya|Plum|Apricot|Fig|Grapefruit|Tangerine|Mandarin|Clementine|Passion Fruit|Dragon Fruit|Guava|Lychee|Persimmon|Date|Cranberry|Gooseberry|Mulberry|Blackcurrant|Redcurrant|Star Fruit|Avocado|Jackfruit|Durian|Nectarine|Quince|Cantaloupe|Honeydew|Olive|Acorn|Chestnut|Hazelnut|Walnut|Almond|Peanut|Cashew|Pistachio|Pecan|Brazil Nut|Macadamia|Rambutan`)
+      },
+      {
+        id: "food",
+        label: "Food",
+        icon: "🍕",
+        fileName: "Food.json",
+        description: "Well-known meals, snacks, desserts, and street foods from around the world.",
+        words: list(`Pizza|Burger|Hot Dog|Sandwich|Taco|Burrito|Spaghetti|Noodles|Sushi|Steak|Fried Egg|Bread|Donut|Cupcake|Cake|Cookie|Pretzel|Popcorn|French Fries|Pancake|Waffle|Ice Cream|Cheese|Soup|Salad|Rice|Pasta|Lasagna|Meatball|Sausage|Bacon|Chicken Wings|Fried Chicken|Kebab|Curry|Dumpling|Ramen|Nachos|Quesadilla|Croissant|Bagel|Toast|Cereal|Oatmeal|Yogurt|Chocolate|Candy|Lollipop|Marshmallow|Brownie|Cheesecake|Apple Pie|Pumpkin Pie|Muffin|Macaron|Churro|Pudding|Jelly|Honey|Jam|Peanut Butter|Ketchup|Mustard|Mayonnaise|Salt|Pepper|Butter|Milk|Coffee|Tea|Hot Chocolate|Lemonade|Milkshake|Smoothie|Orange Juice|Cola|Water Bottle|Baked Potato|Mashed Potato|Omelet|Fish and Chips|Paella|Risotto|Goulash|Falafel|Hummus|Shawarma|Pita Bread|Spring Roll|Fried Rice|Dim Sum|Pho|Bibimbap|Kimchi|Porridge|Popsicle|Cotton Candy|Fortune Cookie|Gingerbread Man|Birthday Cake|Lunch Box`)
+      },
+      {
+        id: "vegetable",
+        label: "Vegetable",
+        icon: "🥕",
+        fileName: "Vegetable.json",
+        description: "Common vegetables, greens, roots, and edible plants found in kitchens and gardens.",
+        words: list(`Carrot|Potato|Tomato|Broccoli|Cauliflower|Cabbage|Lettuce|Cucumber|Onion|Garlic|Bell Pepper|Chili Pepper|Corn|Pumpkin|Eggplant|Zucchini|Mushroom|Peas|Green Beans|Celery|Asparagus|Beet|Radish|Turnip|Spinach|Sweet Potato|Artichoke|Leek|Brussels Sprouts|Kale|Bok Choy|Okra|Avocado|Olive|Ginger|Parsley|Basil|Mint|Coriander|Dill|Rosemary|Thyme|Spring Onion|Red Onion|Yam|Cassava|Horseradish|Parsnip|Rhubarb|Fennel|Watercress|Arugula|Bean Sprouts|Bamboo Shoots|Seaweed|Butternut Squash|Acorn Squash|Snow Peas|Chickpeas|Lentils`)
+      },
+      {
+        id: "superheroes",
+        label: "Superheroes",
+        icon: "🦸",
+        fileName: "Superheroes.json",
+        description: "Widely recognized comic-book and screen heroes. This list contains plain text names only.",
+        words: list(`Superman|Batman|Spider-Man|Wonder Woman|Iron Man|Captain America|Hulk|Thor|Black Panther|The Flash|Aquaman|Wolverine|Deadpool|Captain Marvel|Doctor Strange|Green Lantern|Supergirl|Batgirl|Robin|Ant-Man|Wasp|Hawkeye|Black Widow|Daredevil|Luke Cage|Iron Fist|Storm|Jean Grey|Cyclops|Beast|Nightcrawler|Professor X|Shazam|Green Arrow|Cyborg|Star-Lord|Groot|Rocket Raccoon|Gamora|Drax|Vision|Scarlet Witch|Falcon|Winter Soldier|She-Hulk|Moon Knight|Ms. Marvel|Blue Beetle|Invincible|Hellboy|The Thing|Human Torch|Mister Fantastic|Invisible Woman|Blade|Ghost Rider|Silver Surfer|Nova|Static Shock|Teenage Mutant Ninja Turtles|Power Rangers|He-Man|Sailor Moon|Astro Boy|The Incredibles|Elastigirl|Mr. Incredible|Aang|Korra|Ben 10`)
+      },
+      {
+        id: "villains",
+        label: "Villains",
+        icon: "🦹",
+        fileName: "Villains.json",
+        description: "Famous villains and antagonists from comics, films, animation, games, and classic stories.",
+        words: list(`Joker|Darth Vader|Thanos|Loki|Green Goblin|Doctor Doom|Magneto|Lex Luthor|Harley Quinn|Catwoman|Poison Ivy|Riddler|Penguin|Two-Face|Bane|Kingpin|Red Skull|Ultron|Venom|Carnage|Mysterio|Doctor Octopus|Sandman|Electro|Hela|Darkseid|General Zod|Reverse-Flash|Deathstroke|Black Adam|Voldemort|Sauron|Saruman|Gollum|Cruella de Vil|Maleficent|Ursula|Scar|Jafar|Captain Hook|Evil Queen|Hades|Gaston|Queen of Hearts|Dr. Facilier|Bowser|Dr. Eggman|Ganondorf|Sephiroth|Pyramid Head|Albert Wesker|Handsome Jack|GLaDOS|Vaas|Ghostface|Freddy Krueger|Jason Voorhees|Michael Myers|Pennywise|Hannibal Lecter|Terminator|Alien Queen|Predator|King Kong|Godzilla|Wicked Witch|Big Bad Wolf|Headless Horseman|Count Dracula|Frankenstein's Monster`)
+      },
+      {
+        id: "video-game-characters",
+        label: "Video Game Characters",
+        icon: "🎮",
+        fileName: "VideoGameCharacters.json",
+        description: "Iconic protagonists, companions, mascots, and rivals from widely played video games.",
+        words: list(`Mario|Luigi|Sonic|Link|Princess Zelda|Pikachu|Lara Croft|Pac-Man|Kirby|Donkey Kong|Kratos|Master Chief|Minecraft Steve|Creeper|Samus Aran|Crash Bandicoot|Spyro|Mega Man|Ryu|Chun-Li|Scorpion|Sub-Zero|Agent 47|Geralt of Rivia|Nathan Drake|Aloy|Ezio Auditore|Arthur Morgan|Doom Slayer|Solid Snake|Cloud Strife|Sephiroth|Yoshi|Bowser|Princess Peach|Toad|Wario|Waluigi|Daisy|Diddy Kong|King Dedede|Fox McCloud|Captain Falcon|Little Mac|Ness|Jigglypuff|Charizard|Mewtwo|Ash Ketchum|Tails|Knuckles|Dr. Eggman|Shadow the Hedgehog|Amy Rose|Leon Kennedy|Jill Valentine|Chris Redfield|Albert Wesker|Ellie|Joel|Abby|Ratchet|Clank|Sackboy|Jak and Daxter|Sly Cooper|Rayman|Gordon Freeman|GLaDOS|Chell|Heavy|Tracer|Mercy|Reaper|D.Va|Genji|Jinx|Ahri|Teemo|Pudge|Invoker|Juggernaut|Axe|Tiny|Lina|Crystal Maiden|Sans|Cuphead|Shovel Knight|Hollow Knight|Fall Guy|Among Us Crewmate`)
+      },
+      {
+        id: "countries",
+        label: "Countries",
+        icon: "🌍",
+        fileName: "Countries.json",
+        description: "Recognizable countries from every region, useful for maps, flags, landmarks, and travel clues.",
+        words: list(`United States|Canada|Mexico|Brazil|Argentina|Chile|Peru|Colombia|Venezuela|Cuba|Jamaica|Costa Rica|Panama|Dominican Republic|Bahamas|United Kingdom|Ireland|France|Germany|Spain|Portugal|Italy|Netherlands|Belgium|Switzerland|Austria|Denmark|Norway|Sweden|Finland|Iceland|Poland|Ukraine|Greece|Romania|Hungary|Czech Republic|Croatia|Serbia|Bulgaria|Turkey|Russia|Georgia|Armenia|Azerbaijan|Kazakhstan|Uzbekistan|Kyrgyzstan|Tajikistan|Turkmenistan|China|Japan|South Korea|North Korea|Mongolia|India|Pakistan|Bangladesh|Nepal|Bhutan|Sri Lanka|Maldives|Thailand|Vietnam|Indonesia|Malaysia|Singapore|Philippines|Cambodia|Myanmar|Laos|Australia|New Zealand|Fiji|Papua New Guinea|Saudi Arabia|United Arab Emirates|Qatar|Kuwait|Oman|Yemen|Jordan|Lebanon|Israel|Iraq|Iran|Syria|Egypt|Morocco|Algeria|Tunisia|Libya|Sudan|Ethiopia|Kenya|Tanzania|Uganda|Rwanda|Somalia|Ghana|Nigeria|Senegal|Cameroon|South Africa|Zimbabwe|Zambia|Botswana|Namibia|Madagascar|Mozambique|Mauritius`)
+      },
+      {
+        id: "professions",
+        label: "Professions",
+        icon: "🧑‍🚀",
+        fileName: "Professions.json",
+        description: "Everyday jobs and instantly recognizable uniforms, tools, workplaces, and activities.",
+        words: list(`Doctor|Nurse|Teacher|Police Officer|Firefighter|Chef|Farmer|Pilot|Astronaut|Scientist|Engineer|Programmer|Artist|Musician|Singer|Dancer|Actor|Director|Photographer|Writer|Journalist|Lawyer|Judge|Dentist|Veterinarian|Pharmacist|Paramedic|Surgeon|Psychologist|Architect|Builder|Carpenter|Electrician|Plumber|Mechanic|Welder|Painter|Gardener|Fisherman|Hunter|Baker|Butcher|Waiter|Bartender|Barista|Cashier|Shopkeeper|Tailor|Fashion Designer|Hairdresser|Makeup Artist|Personal Trainer|Football Player|Basketball Player|Tennis Player|Boxer|Wrestler|Coach|Referee|Lifeguard|Soldier|Sailor|Security Guard|Detective|Spy|Magician|Clown|Circus Performer|Tour Guide|Travel Agent|Flight Attendant|Taxi Driver|Bus Driver|Truck Driver|Train Driver|Delivery Driver|Mail Carrier|Librarian|Accountant|Banker|Real Estate Agent|Politician|Mayor|President|King|Queen|Priest|Monk|Archaeologist|Historian|Geologist|Biologist|Chemist|Physicist|Meteorologist|News Reporter|TV Host|YouTuber|Streamer|Game Designer|Web Designer`)
+      },
+      {
+        id: "cartoon-characters",
+        label: "Cartoon Characters",
+        icon: "📺",
+        fileName: "CartoonCharacters.json",
+        description: "Very recognizable characters from classic cartoons, modern animation, and family films.",
+        words: list(`Mickey Mouse|Minnie Mouse|Donald Duck|Goofy|Pluto|Bugs Bunny|Daffy Duck|Tweety|Sylvester|Road Runner|Wile E. Coyote|Tom|Jerry|Scooby-Doo|Shaggy|Fred Flintstone|SpongeBob SquarePants|Patrick Star|Squidward|Mr. Krabs|Popeye|Olive Oyl|Garfield|Odie|Homer Simpson|Bart Simpson|Marge Simpson|Lisa Simpson|Peter Griffin|Stewie Griffin|Rick Sanchez|Morty Smith|Finn the Human|Jake the Dog|Gumball|Darwin|Ben 10|Johnny Bravo|Dexter|Powerpuff Girls|Samurai Jack|Courage the Cowardly Dog|Aang|Appa|Korra|Shrek|Donkey|Puss in Boots|Po|Toothless|Hiccup|Woody|Buzz Lightyear|Lightning McQueen|Mater|Nemo|Dory|Wall-E|Eve|Stitch|Simba|Timon|Pumbaa|Aladdin|Genie|Elsa|Anna|Olaf|Moana|Maui|Rapunzel|Baymax|Totoro|Pikachu|Sailor Moon|Naruto|Goku|Vegeta|Luffy|Doraemon|Hello Kitty|Peppa Pig|George Pig|Bluey|Paddington Bear|Winnie the Pooh|Tigger|Pink Panther|Mr. Bean`)
+      },
+      {
+        id: "general-mythology",
+        label: "General Mythology",
+        icon: "🐉",
+        fileName: "GeneralMythology.json",
+        description: "Legendary creatures, magical beings, monsters, and folklore icons shared across cultures.",
+        words: list(`Dragon|Unicorn|Phoenix|Mermaid|Vampire|Werewolf|Fairy|Elf|Dwarf|Goblin|Ogre|Troll|Giant|Cyclops|Minotaur|Centaur|Griffin|Sphinx|Kraken|Hydra|Cerberus|Pegasus|Chimera|Gorgon|Siren|Banshee|Leprechaun|Yeti|Bigfoot|Loch Ness Monster|Mummy|Zombie|Ghost|Witch|Wizard|Genie|Demon|Angel|Cupid|Gargoyle|Golem|Kitsune|Djinn|Sea Serpent|Thunderbird|Basilisk|Cockatrice|Manticore|Harpy|Satyr|Dryad|Nymph|Kelpie|Selkie|Fairy Godmother|Tooth Fairy|Sandman|Boogeyman|Grim Reaper|Headless Horseman|Jack-o'-Lantern|Santa Claus|Easter Bunny|Magic Carpet|Magic Mirror|Crystal Ball|Flying Broom|Excalibur|Holy Grail|Pandora's Box|Fountain of Youth|Atlantis|El Dorado|Valhalla|Underworld|Heaven|Labyrinth|Magic Lamp|Seven-Headed Dragon|Firebird|Snow Queen|Jabberwock`)
+      },
+      {
+        id: "greek-mythology",
+        label: "Greek Mythology",
+        icon: "🏛️",
+        fileName: "GreekMythology.json",
+        description: "The best-known Olympian gods, heroes, monsters, places, and legendary objects of Ancient Greece.",
+        words: list(`Zeus|Hera|Poseidon|Hades|Athena|Apollo|Artemis|Aphrodite|Ares|Hermes|Hephaestus|Demeter|Dionysus|Hestia|Persephone|Eros|Nike|Pan|Hecate|Hercules|Achilles|Odysseus|Perseus|Theseus|Jason|Orpheus|Pandora|Icarus|Daedalus|King Midas|Helen of Troy|Paris|Agamemnon|Medusa|Minotaur|Cyclops|Cerberus|Hydra|Pegasus|Centaur|Satyr|Siren|Harpy|Chimera|Griffin|Titan|Atlas|Prometheus|Cronus|Gaia|Mount Olympus|Underworld|River Styx|Trojan Horse|Golden Fleece|Pandora's Box|Trident|Lightning Bolt|Laurel Wreath|Labyrinth|Oracle|Ambrosia|Narcissus|Sisyphus|Tantalus|Nemesis|Furies|Fates|Muses|Charon`)
+      },
+      {
+        id: "norse-mythology",
+        label: "Norse Mythology",
+        icon: "⚡",
+        fileName: "NorseMythology.json",
+        description: "Gods, giants, creatures, realms, and symbols from Norse mythology—the requested “North mythology” topic.",
+        words: list(`Odin|Thor|Loki|Frigg|Freyja|Freyr|Tyr|Heimdall|Balder|Bragi|Idun|Njord|Hel|Sif|Vidar|Vali|Forseti|Skadi|Fenrir|Jormungandr|Sleipnir|Huginn|Muninn|Ratatoskr|Nidhogg|Valkyrie|Viking|Frost Giant|Fire Giant|Draugr|Dwarf|Elf|Troll|Yggdrasil|Asgard|Midgard|Valhalla|Bifrost|Ragnarok|Mjolnir|Gungnir|Longship|Rune Stone|Viking Helmet|Shield Maiden|Mead Horn|World Tree|Nine Realms|Well of Wisdom|Naglfar|Fafnir|Sigurd|Brynhild|Surtr|Ymir|Mimir|Aegir|Ran|Einherjar|Skoll|Hati`)
+      },
+      {
+        id: "egyptian-mythology",
+        label: "Egyptian Mythology",
+        icon: "☀️",
+        fileName: "EgyptianMythology.json",
+        description: "Ancient Egyptian gods, sacred animals, legendary objects, monuments, and afterlife symbols.",
+        words: list(`Ra|Anubis|Isis|Osiris|Horus|Set|Bastet|Thoth|Hathor|Sekhmet|Sobek|Ptah|Amun|Nut|Geb|Nephthys|Ma'at|Khonsu|Khepri|Taweret|Bes|Apophis|Sphinx|Mummy|Pharaoh|Pyramid|Scarab|Eye of Horus|Ankh|Canopic Jar|Sarcophagus|Book of the Dead|Sun Disk|Crook and Flail|Sacred Cat|Sacred Ibis|Sacred Crocodile|Jackal|Falcon|Cobra|Nile River|Underworld|Field of Reeds|Weighing of the Heart|Feather of Ma'at|Solar Boat|Temple|Obelisk|Hieroglyphs|Tutankhamun|Cleopatra|Ramses|Nefertiti|Great Pyramid|Valley of the Kings|Sphinx of Giza|Lotus Flower|Papyrus|Desert|Oasis`)
+      },
+      {
+        id: "chinese-mythology",
+        label: "Chinese Mythology",
+        icon: "🐲",
+        fileName: "ChineseMythology.json",
+        description: "Famous figures, creatures, legends, magical objects, and celestial places from Chinese mythology.",
+        words: list(`Jade Emperor|Monkey King|Sun Wukong|Guanyin|Nezha|Erlang Shen|Chang'e|Hou Yi|Mazu|Dragon King|Ao Guang|Nuwa|Fuxi|Shennong|Pangu|Zhu Bajie|Sha Wujing|Tang Sanzang|Eight Immortals|Kitchen God|God of Wealth|Moon Rabbit|Chinese Dragon|Qilin|Fenghuang|Nine-Tailed Fox|Pixiu|Jiangshi|Nian|Taotie|White Snake|Azure Dragon|White Tiger|Vermilion Bird|Black Tortoise|Fu Dog|Carp Dragon|Golden Dragon|Dragon Pearl|Magic Staff|Peaches of Immortality|Lotus Lantern|Moon Palace|Heavenly Palace|Celestial River|Five Sacred Mountains|Great Flood|Red String of Fate|Yin and Yang|Bagua|Cloud Ladder|Pagoda|Temple Bell|Paper Lantern|Firecracker|Lion Dance|Dragon Dance|Terracotta Warrior|Emperor's Seal|Journey to the West`)
+      },
+      {
+        id: "indian-mythology",
+        label: "Indian Mythology",
+        icon: "🪷",
+        fileName: "IndianMythology.json",
+        description: "Widely known deities, heroes, beings, symbols, and stories from Indian epics and traditions.",
+        words: list(`Brahma|Vishnu|Shiva|Lakshmi|Saraswati|Parvati|Ganesha|Krishna|Rama|Sita|Hanuman|Kali|Durga|Indra|Agni|Surya|Chandra|Yama|Varuna|Vayu|Kamadeva|Kartikeya|Narasimha|Vamana|Matsya|Kurma|Garuda|Nandi|Shesha|Airavata|Ravana|Kumbhakarna|Arjuna|Bhima|Yudhishthira|Draupadi|Karna|Duryodhana|Bhishma|Abhimanyu|Ashwatthama|Vikramaditya|Vetala|Yaksha|Yakshini|Rakshasa|Naga|Apsara|Gandharva|Vanara|Kinnara|Makara|Kamadhenu|Kalpavriksha|Mount Meru|Himalayas|Ganges River|Lotus|Trident|Conch Shell|Chakra|Vina|Bow and Arrow|Flying Chariot|Pushpaka Vimana|Ramayana|Mahabharata|Churning of the Ocean|Diwali Lamp|Rangoli`)
+      },
+      {
+        id: "weapons",
+        label: "Weapons",
+        icon: "⚔️",
+        fileName: "Weapons.json",
+        description: "Recognizable historical, fantasy, sporting, and modern weapons with clear silhouettes.",
+        words: list(`Sword|Shield|Bow and Arrow|Spear|Axe|Hammer|Dagger|Knife|Mace|Club|Staff|Whip|Slingshot|Boomerang|Crossbow|Catapult|Cannon|Trebuchet|Lance|Halberd|Scythe|Trident|Pitchfork|Nunchucks|Shuriken|Katana|Rapier|Sabre|Cutlass|Longbow|Harpoon|Blowgun|Tomahawk|Battle Axe|War Hammer|Flail|Battering Ram|Musket|Pistol|Revolver|Rifle|Shotgun|Machine Gun|Sniper Rifle|Rocket Launcher|Grenade|Land Mine|Taser|Pepper Spray|Brass Knuckles|Chainsaw|Laser Gun|Lightsaber|Magic Wand|Magic Staff|Fireball|Ice Sword|Thor's Hammer|Captain America's Shield|Excalibur|Mjolnir|Frying Pan|Water Gun|Paintball Gun|Nerf Blaster|Baseball Bat|Hockey Stick|Crowbar|Torch|Dynamite`)
+      },
+      {
+        id: "kitchen-tools",
+        label: "Kitchen Tools",
+        icon: "🍳",
+        fileName: "KitchenTools.json",
+        description: "Common cookware, utensils, appliances, and objects found while preparing or serving food.",
+        words: list(`Spoon|Fork|Knife|Plate|Bowl|Cup|Glass|Mug|Frying Pan|Saucepan|Cooking Pot|Kettle|Teapot|Spatula|Ladle|Whisk|Tongs|Peeler|Grater|Colander|Sieve|Cutting Board|Rolling Pin|Can Opener|Bottle Opener|Corkscrew|Measuring Cup|Measuring Spoon|Kitchen Scale|Timer|Oven Mitt|Apron|Chef Hat|Napkin|Tablecloth|Tray|Pitcher|Thermos|Lunch Box|Chopsticks|Straw|Toothpick|Mortar and Pestle|Garlic Press|Pizza Cutter|Ice Cream Scoop|Cookie Cutter|Pastry Brush|Potato Masher|Meat Tenderizer|Kitchen Scissors|Funnel|Jar|Food Container|Salt Shaker|Pepper Grinder|Spice Rack|Dish Rack|Sponge|Dish Soap|Paper Towel|Aluminum Foil|Plastic Wrap|Oven|Stove|Microwave|Refrigerator|Freezer|Dishwasher|Toaster|Blender|Mixer|Coffee Maker|Rice Cooker|Slow Cooker|Air Fryer|Pressure Cooker|Juicer|Food Processor|Waffle Maker|Sandwich Press|Kitchen Sink|Faucet|Cupboard|Pantry|Recipe Book|Fruit Basket|Bread Box|Ice Tray|Trash Can`)
+      },
+      {
+        id: "house",
+        label: "House",
+        icon: "🏠",
+        fileName: "House.json",
+        description: "Rooms, furniture, appliances, decorations, and practically anything you might find around a home.",
+        words: list(`House|Apartment|Door|Window|Roof|Chimney|Fence|Gate|Garage|Garden|Balcony|Stairs|Hallway|Living Room|Bedroom|Kitchen|Bathroom|Dining Room|Basement|Attic|Closet|Bed|Pillow|Blanket|Mattress|Wardrobe|Dresser|Nightstand|Alarm Clock|Lamp|Desk|Chair|Sofa|Armchair|Coffee Table|Dining Table|Bookshelf|Book|Television|Remote Control|Radio|Speaker|Computer|Laptop|Phone|Tablet|Charger|Wi-Fi Router|Clock|Calendar|Mirror|Painting|Picture Frame|Vase|Flower Pot|Curtain|Carpet|Rug|Doormat|Light Bulb|Ceiling Fan|Air Conditioner|Heater|Fireplace|Refrigerator|Oven|Microwave|Toaster|Kettle|Washing Machine|Dryer|Dishwasher|Vacuum Cleaner|Iron|Ironing Board|Broom|Mop|Bucket|Dustpan|Trash Can|Laundry Basket|Towel|Soap|Shampoo|Toothbrush|Toothpaste|Hairbrush|Hair Dryer|Toilet|Bathtub|Shower|Sink|Faucet|Toilet Paper|Tissue Box|Key|Doorbell|Umbrella|Coat Hanger|Shoe Rack|Slippers|Backpack|Suitcase|Toy Box|Teddy Bear|Board Game|Candle|Flashlight|Toolbox|Hammer|Screwdriver|Ladder|Garden Hose|Lawn Mower|Mailbox|Dog House|Birdhouse|Swimming Pool|Barbecue Grill|Patio Chair`)
+      },
+      {
+        id: "school",
+        label: "School",
+        icon: "🎒",
+        fileName: "School.json",
+        description: "People, supplies, rooms, activities, and familiar objects from classrooms and school life.",
+        words: list(`School|Classroom|Teacher|Student|Principal|School Bus|Backpack|Lunch Box|Notebook|Textbook|Workbook|Library Book|Pencil|Pen|Eraser|Pencil Sharpener|Ruler|Scissors|Glue Stick|Crayon|Marker|Highlighter|Paintbrush|Watercolor|Calculator|Compass|Protractor|Set Square|Stapler|Paper Clip|Binder|Folder|Paper|Sticky Note|Index Card|Whiteboard|Blackboard|Chalk|Board Eraser|Desk|Chair|Teacher's Desk|Bookshelf|School Bell|Clock|Calendar|Globe|World Map|Flag|Computer|Projector|Screen|Tablet|Printer|Microscope|Telescope|Test Tube|Beaker|Magnet|Skeleton|Atom Model|Plant Cell|Abacus|Dictionary|Atlas|Report Card|Homework|Exam|Quiz|Diploma|Certificate|Gold Star|Apple for Teacher|School Uniform|Gym Clothes|Sneakers|Locker|Cafeteria|Library|Gymnasium|Playground|Science Lab|Art Room|Music Room|Computer Room|Nurse's Office|Auditorium|Football|Basketball|Volleyball|Jump Rope|Hula Hoop|Slide|Swing|Seesaw|Lunch Tray|Water Bottle|Sandwich|School Milk|Graduation Cap|School Trophy|Medal|Name Tag|Hall Pass|Class Photo|School Mascot`)
+      }
+    ];
+
+    const STORAGE_KEY = "skrbl-topic-workshop-v1";
+    const MAX_WORDS = 200;
+
+    let activeTopicID = TOPIC_DEFINITIONS[0].id;
+    let outputDirectoryHandle = null;
+    const dirtyTopics = new Set();
+
+    const cloneDefaults = () => Object.fromEntries(
+      TOPIC_DEFINITIONS.map((topic) => [
+        topic.id,
+        {
+          words: [...topic.words],
+          selected: [...topic.words]
+        }
+      ])
+    );
+
+    const loadSavedState = () => {
+      const defaults = cloneDefaults();
+
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!stored || typeof stored !== "object") return defaults;
+
+        for (const topic of TOPIC_DEFINITIONS) {
+          const candidate = stored[topic.id];
+          if (!candidate || !Array.isArray(candidate.words) || !Array.isArray(candidate.selected)) continue;
+
+          const words = uniqueWords(candidate.words).slice(0, MAX_WORDS);
+          const allowed = new Set(words.map(normalizeWord));
+          const selected = uniqueWords(candidate.selected).filter((word) => allowed.has(normalizeWord(word)));
+          defaults[topic.id] = { words, selected };
+        }
+      } catch (error) {
+        console.warn("Could not restore saved editor state.", error);
+      }
+
+      return defaults;
+    };
+
+    function normalizeWord(word) {
+      return String(word).trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    }
+
+    function cleanWord(word) {
+      return String(word).trim().replace(/\s+/g, " ");
+    }
+
+    function uniqueWords(words) {
+      const seen = new Set();
+      const result = [];
+
+      for (const rawWord of words) {
+        const word = cleanWord(rawWord);
+        const key = normalizeWord(word);
+        if (!word || seen.has(key)) continue;
+        seen.add(key);
+        result.push(word);
+      }
+
+      return result;
+    }
+
+    const state = loadSavedState();
+
+    const elements = {
+      topicNav: document.querySelector("#topicNav"),
+      topicSearch: document.querySelector("#topicSearch"),
+      topicFile: document.querySelector("#topicFile"),
+      topicTitle: document.querySelector("#topicTitle"),
+      topicDescription: document.querySelector("#topicDescription"),
+      selectedCount: document.querySelector("#selectedCount"),
+      addWordForm: document.querySelector("#addWordForm"),
+      newWordInput: document.querySelector("#newWordInput"),
+      wordSearch: document.querySelector("#wordSearch"),
+      wordToolbarInfo: document.querySelector("#wordToolbarInfo"),
+      wordGrid: document.querySelector("#wordGrid"),
+      emptyState: document.querySelector("#emptyState"),
+      selectAllButton: document.querySelector("#selectAllButton"),
+      selectNoneButton: document.querySelector("#selectNoneButton"),
+      resetButton: document.querySelector("#resetButton"),
+      saveSummary: document.querySelector("#saveSummary"),
+      saveButton: document.querySelector("#saveButton"),
+      chooseFolderButton: document.querySelector("#chooseFolderButton"),
+      folderStatus: document.querySelector("#folderStatus"),
+      toastRegion: document.querySelector("#toastRegion")
+    };
+
+    function getActiveDefinition() {
+      return TOPIC_DEFINITIONS.find((topic) => topic.id === activeTopicID);
+    }
+
+    function getActiveState() {
+      return state[activeTopicID];
+    }
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.warn("Could not persist editor state in this browser.", error);
+      }
+    }
+
+    function renderTopicNav() {
+      const query = normalizeWord(elements.topicSearch.value);
+      const visibleTopics = TOPIC_DEFINITIONS.filter((topic) => normalizeWord(topic.label).includes(query));
+      elements.topicNav.replaceChildren();
+
+      for (const topic of visibleTopics) {
+        const topicState = state[topic.id];
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `topic-button${topic.id === activeTopicID ? " active" : ""}`;
+        button.setAttribute("aria-current", topic.id === activeTopicID ? "page" : "false");
+
+        const icon = document.createElement("span");
+        icon.className = "topic-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = topic.icon;
+
+        const name = document.createElement("span");
+        name.className = "topic-name";
+        name.textContent = topic.label;
+        if (dirtyTopics.has(topic.id)) {
+          const dot = document.createElement("span");
+          dot.className = "dirty-dot";
+          dot.title = "Unsaved JSON changes";
+          name.append(dot);
+        }
+
+        const count = document.createElement("span");
+        count.className = "topic-count";
+        count.textContent = `${topicState.selected.length}/${topicState.words.length}`;
+
+        button.append(icon, name, count);
+        button.addEventListener("click", () => {
+          activeTopicID = topic.id;
+          elements.wordSearch.value = "";
+          render();
+        });
+        elements.topicNav.append(button);
+      }
+    }
+
+    function renderWorkspace() {
+      const topic = getActiveDefinition();
+      const topicState = getActiveState();
+      const selectedKeys = new Set(topicState.selected.map(normalizeWord));
+      const filter = normalizeWord(elements.wordSearch.value);
+      const visibleWords = topicState.words.filter((word) => normalizeWord(word).includes(filter));
+
+      elements.topicFile.textContent = topic.fileName;
+      elements.topicTitle.textContent = topic.label;
+      elements.topicDescription.textContent = topic.description;
+      elements.selectedCount.textContent = `${topicState.selected.length} / ${topicState.words.length}`;
+      elements.wordToolbarInfo.textContent = `${visibleWords.length} shown · ${MAX_WORDS - topicState.words.length} spaces available · click a word to include or exclude it`;
+      elements.saveSummary.textContent = dirtyTopics.has(topic.id) ? "Unsaved JSON changes" : "Ready to export";
+      elements.saveButton.textContent = `Save ${topic.fileName}`;
+      elements.newWordInput.placeholder = topicState.words.length >= MAX_WORDS ? "This topic has 200 words" : "Add a new word…";
+      elements.newWordInput.disabled = topicState.words.length >= MAX_WORDS;
+      elements.addWordForm.querySelector("button").disabled = topicState.words.length >= MAX_WORDS;
+      elements.wordGrid.replaceChildren();
+      elements.emptyState.hidden = visibleWords.length > 0;
+
+      for (const word of visibleWords) {
+        const selected = selectedKeys.has(normalizeWord(word));
+        const label = document.createElement("label");
+        label.className = `word-card${selected ? " selected" : ""}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = selected;
+        checkbox.setAttribute("aria-label", `${selected ? "Exclude" : "Include"} ${word}`);
+        checkbox.addEventListener("change", () => toggleWord(word));
+
+        const checkmark = document.createElement("span");
+        checkmark.className = "checkmark";
+        checkmark.setAttribute("aria-hidden", "true");
+        checkmark.textContent = "✓";
+
+        const name = document.createElement("span");
+        name.className = "word-label";
+        name.title = word;
+        name.textContent = word;
+
+        label.append(checkbox, checkmark, name);
+        elements.wordGrid.append(label);
+      }
+    }
+
+    function render() {
+      renderTopicNav();
+      renderWorkspace();
+    }
+
+    function markDirty() {
+      dirtyTopics.add(activeTopicID);
+      persistState();
+    }
+
+    function toggleWord(word) {
+      const topicState = getActiveState();
+      const key = normalizeWord(word);
+      const isSelected = topicState.selected.some((selectedWord) => normalizeWord(selectedWord) === key);
+
+      if (isSelected) {
+        topicState.selected = topicState.selected.filter((selectedWord) => normalizeWord(selectedWord) !== key);
+      } else {
+        topicState.selected.push(word);
+      }
+
+      markDirty();
+      render();
+    }
+
+    function selectWords(selectAll) {
+      const topicState = getActiveState();
+      topicState.selected = selectAll ? [...topicState.words] : [];
+      markDirty();
+      render();
+    }
+
+    function addWord(event) {
+      event.preventDefault();
+      const topicState = getActiveState();
+      const word = cleanWord(elements.newWordInput.value);
+
+      if (!word) return;
+      if (topicState.words.length >= MAX_WORDS) {
+        showToast("This topic already has the maximum of 200 words.", true);
+        return;
+      }
+
+      const key = normalizeWord(word);
+      if (topicState.words.some((existing) => normalizeWord(existing) === key)) {
+        showToast(`“${word}” is already in this topic.`, true);
+        return;
+      }
+
+      topicState.words.push(word);
+      topicState.selected.push(word);
+      elements.newWordInput.value = "";
+      elements.wordSearch.value = "";
+      markDirty();
+      render();
+      showToast(`Added “${word}”.`);
+    }
+
+    function resetActiveTopic() {
+      const topic = getActiveDefinition();
+      const confirmed = window.confirm(`Reset ${topic.label} to its original word list? Your local edits to this topic will be lost.`);
+      if (!confirmed) return;
+
+      state[topic.id] = {
+        words: [...topic.words],
+        selected: [...topic.words]
+      };
+      dirtyTopics.add(topic.id);
+      elements.wordSearch.value = "";
+      persistState();
+      render();
+      showToast(`${topic.label} was reset.`);
+    }
+
+    function selectedWordsForActiveTopic() {
+      const topicState = getActiveState();
+      const selectedKeys = new Set(topicState.selected.map(normalizeWord));
+      return topicState.words.filter((word) => selectedKeys.has(normalizeWord(word)));
+    }
+
+    async function chooseOutputFolder() {
+      if (!("showDirectoryPicker" in window)) {
+        showToast("Direct folder access is unavailable in this browser. Save will use a file picker or download instead.", true);
+        return;
+      }
+
+      try {
+        outputDirectoryHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+        elements.folderStatus.textContent = `Saving JSON to: ${outputDirectoryHandle.name}`;
+        elements.chooseFolderButton.textContent = "Change folder";
+        showToast(`JSON files will save directly to “${outputDirectoryHandle.name}”.`);
+      } catch (error) {
+        if (error.name !== "AbortError") showToast("The folder could not be opened.", true);
+      }
+    }
+
+    async function saveActiveTopic() {
+      const topic = getActiveDefinition();
+      const words = selectedWordsForActiveTopic();
+      const json = `${JSON.stringify(words, null, 2)}\n`;
+
+      try {
+        if (outputDirectoryHandle) {
+          const permission = await outputDirectoryHandle.queryPermission({ mode: "readwrite" });
+          if (permission !== "granted") {
+            const requested = await outputDirectoryHandle.requestPermission({ mode: "readwrite" });
+            if (requested !== "granted") throw new Error("Folder permission was not granted.");
+          }
+
+          const fileHandle = await outputDirectoryHandle.getFileHandle(topic.fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(json);
+          await writable.close();
+        } else if ("showSaveFilePicker" in window) {
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: topic.fileName,
+            types: [{
+              description: "JSON file",
+              accept: { "application/json": [".json"] }
+            }]
+          });
+          const writable = await fileHandle.createWritable();
+          await writable.write(json);
+          await writable.close();
+        } else {
+          const blob = new Blob([json], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = topic.fileName;
+          document.body.append(anchor);
+          anchor.click();
+          anchor.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        dirtyTopics.delete(topic.id);
+        render();
+        showToast(`Saved ${topic.fileName} with ${words.length} selected words.`);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          showToast(error.message || `Could not save ${topic.fileName}.`, true);
+        }
+      }
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.createElement("div");
+      toast.className = `toast${isError ? " error" : ""}`;
+      toast.textContent = message;
+      elements.toastRegion.append(toast);
+      window.setTimeout(() => toast.remove(), 3600);
+    }
+
+    elements.topicSearch.addEventListener("input", renderTopicNav);
+    elements.wordSearch.addEventListener("input", renderWorkspace);
+    elements.addWordForm.addEventListener("submit", addWord);
+    elements.selectAllButton.addEventListener("click", () => selectWords(true));
+    elements.selectNoneButton.addEventListener("click", () => selectWords(false));
+    elements.resetButton.addEventListener("click", resetActiveTopic);
+    elements.chooseFolderButton.addEventListener("click", chooseOutputFolder);
+    elements.saveButton.addEventListener("click", saveActiveTopic);
+
+    if (!("showDirectoryPicker" in window)) {
+      elements.folderStatus.textContent = "Save will open a file picker or download JSON.";
+      elements.chooseFolderButton.textContent = "Folder access unavailable";
+      elements.chooseFolderButton.disabled = true;
+    }
+
+    render();
+  </script>
+</body>
+</html>

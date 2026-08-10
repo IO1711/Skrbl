@@ -95,6 +95,7 @@ struct ConnectionModeSelectionView: View {
                 .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
+            .scrollDisabled(true)
         }
         .buttonStyle(.plain)
         .mainBackground()

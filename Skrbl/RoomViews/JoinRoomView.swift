@@ -8,13 +8,13 @@
 import SwiftUI
 
 struct JoinRoomView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var isSearching = false
     @State private var isShowingScanner = false
     @State private var showsInvalidQRCodeAlert = false
     @State private var selectedConnectionMode: RoomConnectionMode?
+    @State private var isShowingRoom = false
 
     private var normalizedName: String {
         RoomConnectionManager.normalizedPlayerName(playerName)
@@ -22,19 +22,7 @@ struct JoinRoomView: View {
 
     var body: some View {
         Group {
-            if connection.isShowingGameResults {
-                GameResultsView(
-                    rankings: connection.finalRankings,
-                    onBackToRoom: connection.dismissGameResults
-                )
-            } else if connection.isGameStarted {
-                SharedSketchSessionView(connection: connection)
-            } else if connection.isConnected {
-                RoomLobbyView(
-                    connection: connection,
-                    showsQRCode: false
-                )
-            } else if isSearching {
+            if isSearching {
                 roomSearch
             } else if let selectedConnectionMode {
                 nameEntry(connectionMode: selectedConnectionMode)
@@ -44,13 +32,11 @@ struct JoinRoomView: View {
                 }
             }
         }
-        .navigationTitle(navigationTitle)
+        .navigationTitle(selectedConnectionMode == nil ? "" : "Join Room")
         .navigationBarTitleDisplayMode(.inline)
-        .chalkBackButton(action: navigateBack)
-        .edgeSwipeBack(
-            isEnabled: !connection.isGameStarted,
-            action: navigateBack
-        )
+        .navigationDestination(isPresented: $isShowingRoom) {
+            joinedRoom
+        }
         .sheet(isPresented: $isShowingScanner) {
             scannerSheet
         }
@@ -59,25 +45,68 @@ struct JoinRoomView: View {
         } message: {
             Text("Scan the QR code shown by a Skrbl room host.")
         }
+        .onChange(of: connection.isConnected) { _, isConnected in
+            guard isConnected else { return }
+            isSearching = false
+            selectedConnectionMode = nil
+            isShowingRoom = true
+        }
+        .onChange(of: isShowingRoom) { wasShowingRoom, isShowingRoom in
+            if wasShowingRoom, !isShowingRoom {
+                connection.stop()
+            }
+        }
         .onDisappear {
-            connection.stop()
+            if !isShowingRoom {
+                connection.stop()
+            }
         }
     }
 
-    private var navigationTitle: String {
+    @ViewBuilder
+    private var joinedRoom: some View {
+        Group {
+            if connection.isShowingGameResults {
+                GameResultsView(
+                    rankings: connection.finalRankings,
+                    onBackToRoom: connection.dismissGameResults
+                )
+            } else if connection.isGameStarted {
+                SharedSketchSessionView(connection: connection)
+            } else {
+                RoomLobbyView(
+                    connection: connection,
+                    showsQRCode: false
+                )
+            }
+        }
+        .navigationTitle(joinedRoomNavigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(connection.isGameStarted)
+        .toolbar {
+            if connection.isGameStarted {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isShowingRoom = false
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+        }
+    }
+
+    private var joinedRoomNavigationTitle: String {
         if connection.isShowingGameResults {
             return "Final Rankings"
         }
         if connection.isGameStarted {
             return "Sketch Board"
         }
-        if connection.isConnected {
-            return connection.roomName
-        }
-        if selectedConnectionMode == nil {
-            return ""
-        }
-        return "Join Room"
+        return connection.roomName
     }
 
     private func nameEntry(connectionMode: RoomConnectionMode) -> some View {
@@ -281,25 +310,6 @@ struct JoinRoomView: View {
             playerName: normalizedName,
             connectionMode: selectedConnectionMode
         )
-    }
-
-    private func navigateBack() {
-        if connection.isShowingGameResults {
-            connection.dismissGameResults()
-        } else if connection.isGameStarted {
-            dismiss()
-        } else if connection.isConnected {
-            connection.stop()
-            isSearching = false
-            selectedConnectionMode = nil
-        } else if isSearching {
-            connection.stop()
-            isSearching = false
-        } else if selectedConnectionMode != nil {
-            selectedConnectionMode = nil
-        } else {
-            dismiss()
-        }
     }
 
     private var showsProgress: Bool {

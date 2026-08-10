@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct CreateRoomView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var hasCreatedRoom = false
@@ -24,19 +23,7 @@ struct CreateRoomView: View {
 
     var body: some View {
         Group {
-            if connection.isShowingGameResults {
-                GameResultsView(
-                    rankings: connection.finalRankings,
-                    onBackToRoom: connection.dismissGameResults
-                )
-            } else if connection.isGameStarted {
-                SharedSketchSessionView(connection: connection)
-            } else if hasCreatedRoom {
-                RoomLobbyView(
-                    connection: connection,
-                    showsQRCode: true
-                )
-            } else if let selectedConnectionMode {
+            if let selectedConnectionMode {
                 roomForm(connectionMode: selectedConnectionMode)
             } else {
                 ConnectionModeSelectionView(actionTitle: "Creating a Room") {
@@ -44,15 +31,56 @@ struct CreateRoomView: View {
                 }
             }
         }
-        .navigationTitle(navigationTitle)
+        .navigationTitle(selectedConnectionMode == nil ? "" : "Create Room")
         .navigationBarTitleDisplayMode(.inline)
-        .chalkBackButton(action: navigateBack)
-        .edgeSwipeBack(
-            isEnabled: !connection.isGameStarted,
-            action: navigateBack
-        )
+        .navigationDestination(isPresented: $hasCreatedRoom) {
+            hostedRoom
+        }
+        .onChange(of: hasCreatedRoom) { wasShowingRoom, isShowingRoom in
+            if wasShowingRoom, !isShowingRoom {
+                connection.stop()
+            }
+        }
         .onDisappear {
-            connection.stop()
+            if !hasCreatedRoom {
+                connection.stop()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var hostedRoom: some View {
+        Group {
+            if connection.isShowingGameResults {
+                GameResultsView(
+                    rankings: connection.finalRankings,
+                    onBackToRoom: connection.dismissGameResults
+                )
+            } else if connection.isGameStarted {
+                SharedSketchSessionView(connection: connection)
+            } else {
+                RoomLobbyView(
+                    connection: connection,
+                    showsQRCode: true
+                )
+            }
+        }
+        .navigationTitle(hostedRoomNavigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(connection.isGameStarted)
+        .toolbar {
+            if connection.isGameStarted {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        hasCreatedRoom = false
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
         }
     }
 
@@ -173,17 +201,14 @@ struct CreateRoomView: View {
         .mainBackground()
     }
 
-    private var navigationTitle: String {
+    private var hostedRoomNavigationTitle: String {
         if connection.isShowingGameResults {
             return "Final Rankings"
         }
         if connection.isGameStarted {
             return "Sketch Board"
         }
-        if hasCreatedRoom {
-            return connection.roomName
-        }
-        return selectedConnectionMode == nil ? "" : "Create Room"
+        return connection.roomName
     }
 
     private func createRoom() {
@@ -194,23 +219,8 @@ struct CreateRoomView: View {
               ) else {
             return
         }
+        self.selectedConnectionMode = nil
         hasCreatedRoom = true
-    }
-
-    private func navigateBack() {
-        if connection.isShowingGameResults {
-            connection.dismissGameResults()
-        } else if connection.isGameStarted {
-            dismiss()
-        } else if hasCreatedRoom {
-            connection.stop()
-            hasCreatedRoom = false
-            selectedConnectionMode = nil
-        } else if selectedConnectionMode != nil {
-            selectedConnectionMode = nil
-        } else {
-            dismiss()
-        }
     }
 }
 
