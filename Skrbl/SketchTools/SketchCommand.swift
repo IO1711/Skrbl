@@ -46,16 +46,6 @@ struct SketchCommand: Codable, Sendable {
         )
     }
 
-    static func continueStroke(at point: SketchPoint) -> SketchCommand {
-        SketchCommand(
-            action: .continueStroke,
-            point: point,
-            color: nil,
-            elements: nil,
-            currentStroke: nil
-        )
-    }
-
     static func append(_ points: [SketchPoint]) -> SketchCommand {
         SketchCommand(
             action: .appendPoints,

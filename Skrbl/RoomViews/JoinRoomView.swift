@@ -30,7 +30,7 @@ struct JoinRoomView: View {
             } else if let selectedConnectionMode {
                 nameEntry(connectionMode: selectedConnectionMode)
             } else {
-                ConnectionModeSelectionView(actionTitle: "Joining a Room") {
+                ConnectionModeSelectionView {
                     selectedConnectionMode = $0
                 }
             }

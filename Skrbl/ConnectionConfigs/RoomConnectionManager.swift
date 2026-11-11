@@ -1376,34 +1376,25 @@ final class RoomConnectionManager {
     }
 
     private func resetGameplayState() {
-        roundTimerTask?.cancel()
-        roundTimerTask = nil
+        clearTurnState()
         isGameStarted = false
         gamePhase = .lobby
         currentDrawerID = nil
-        pendingWordChoices = []
-        wordChoices = []
-        currentSecretWord = nil
-        wordToDraw = nil
-        resetWordHintState()
-        remainingSeconds = 0
         currentRound = 0
         gamePlayerIDs = []
-        guessedPlayerIDs = []
         playerScores = []
         finalRankings = []
-        roundEligibleGuesserIDs = []
-        roundGuessPoints = [:]
-        hasAwardedDrawerForCurrentTurn = false
-        activeWordDrops.removeAll()
-        sketchTools.reset()
     }
 
     private func prepareForChoosing(drawerID: UUID) {
-        roundTimerTask?.cancel()
-        roundTimerTask = nil
+        clearTurnState()
         currentDrawerID = drawerID
         gamePhase = .choosingWord
+    }
+
+    private func clearTurnState() {
+        roundTimerTask?.cancel()
+        roundTimerTask = nil
         pendingWordChoices = []
         wordChoices = []
         currentSecretWord = nil
@@ -1649,25 +1640,12 @@ final class RoomConnectionManager {
     }
 
     private func completeGame(with rankings: [RoomPlayerScore]) {
-        roundTimerTask?.cancel()
-        roundTimerTask = nil
+        clearTurnState()
         isGameStarted = false
         gamePhase = .lobby
         currentDrawerID = nil
-        pendingWordChoices = []
-        wordChoices = []
-        currentSecretWord = nil
-        wordToDraw = nil
-        resetWordHintState()
-        remainingSeconds = 0
         currentRound = 0
         gamePlayerIDs = []
-        guessedPlayerIDs = []
-        roundEligibleGuesserIDs = []
-        roundGuessPoints = [:]
-        hasAwardedDrawerForCurrentTurn = false
-        activeWordDrops.removeAll()
-        sketchTools.reset()
         playerScores = rankings
         finalRankings = sortedRankings(from: rankings)
     }

@@ -26,7 +26,7 @@ struct CreateRoomView: View {
             if let selectedConnectionMode {
                 roomForm(connectionMode: selectedConnectionMode)
             } else {
-                ConnectionModeSelectionView(actionTitle: "Creating a Room") {
+                ConnectionModeSelectionView {
                     selectedConnectionMode = $0
                 }
             }

@@ -25,13 +25,4 @@ enum RoomConnectionMode: String, CaseIterable, Identifiable {
             "dot.radiowaves.left.and.right"
         }
     }
-
-    var description: String {
-        switch self {
-        case .wifi:
-            "Use the same network or a direct peer-to-peer Wi-Fi connection."
-        case .bluetooth:
-            "Discover and join nearby devices using Bluetooth Low Energy."
-        }
-    }
 }

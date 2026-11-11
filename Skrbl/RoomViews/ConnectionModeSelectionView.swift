@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ConnectionModeSelectionView: View {
-    let actionTitle: String
     let onSelect: (RoomConnectionMode) -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -45,6 +44,6 @@ struct ConnectionModeSelectionView: View {
 
 #Preview("Connection Mode Selection") {
     NavigationStack {
-        ConnectionModeSelectionView(actionTitle: "Creating a Room") { _ in }
+        ConnectionModeSelectionView { _ in }
     }
 }
