@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CreateRoomView: View {
-    @StateObject private var connection = RoomConnectionManager()
+    @State private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var hasCreatedRoom = false
     @State private var selectedConnectionMode: RoomConnectionMode?
@@ -87,105 +87,63 @@ struct CreateRoomView: View {
     private func roomForm(connectionMode: RoomConnectionMode) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Connection")
-                        .appTextStyle(AppTheme.chalkboardText(size: 20))
-
-                    HStack {
-                        HStack {
-                            Image(connectionMode.title)
-                                .resizable()
-                                .frame(width: 44, height: 48)
-
-                            Text(connectionMode.title)
-                                .appTextStyle(AppTheme.chalkboardText(size: 20))
-                        }
-
-                        Spacer()
-
-                        Button {
-                            selectedConnectionMode = nil
-                        } label: {
-                            Image("small_button_frame")
-                                .resizable()
-                                .frame(width: 120, height: 60)
-                                .overlay {
-                                    Text("Change")
-                                        .font(AppTheme.font(size: 18))
-                                        .foregroundStyle(AppTheme.text)
-                                }
-                        }
-                    }
+                RoomConnectionHeader(mode: connectionMode) {
+                    selectedConnectionMode = nil
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                //Section {
-
                     Text("Your Name")
-                            .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
+                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
 
-                    TextField("Player name", text: $playerName)
+                    TextField(
+                        "Player name",
+                        text: $playerName,
+                        prompt: Text("Player name")
+                            .foregroundColor(AppTheme.secondaryText)
+                    )
                         .textFieldStyle(.plain)
+                        .foregroundStyle(AppTheme.text)
+                        .tint(AppTheme.text)
                         .padding(.horizontal, 24)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 60)
+                        .frame(minHeight: 60)
                         .contentShape(Rectangle())
-                        /*.background {
-                         Image("input_frame")
-                             .resizable()
-                             .overlay {
-                                 Image("monkey_chalk")
-                                     .resizable()
-                                     .frame(width: 108, height: 162)
-                                     .offset(x:100, y: -40)
-                             }
-                        }*/
                         .overlay {
-                            Image("input_frame")
+                            Image(decorative: "input_frame")
                                 .resizable()
-                                .frame(width: 380)
-                                .overlay {
-                                    Image("monkey_chalk")
-                                        .resizable()
-                                        .frame(width: 108, height: 162)
-                                        .offset(x:100, y: -40)
-                                }
                                 .allowsHitTesting(false)
+                        }
+                        .overlay {
+                            GeometryReader { geometry in
+                                let scale = min(1, geometry.size.width / 380)
+
+                                Image(decorative: "monkey_chalk")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 108 * scale, height: 162 * scale)
+                                    .position(
+                                        x: geometry.size.width / 2 + 100 * scale,
+                                        y: geometry.size.height / 2 - 40 * scale
+                                    )
+                            }
+                            .allowsHitTesting(false)
                         }
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
                         .submitLabel(.go)
                         .onSubmit(createRoom)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
 
-                    Text("The room will be created under this name.")
-                            .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
-
-
-                }/* header: {
-                    Text("Your Name")
-                        .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
-                } footer: {
                     Text("The room will be created under this name.")
                         .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
-                }*/
+                }
 
                 Button(action: createRoom) {
-                    Image("flat_button_frame")
-                        .resizable()
+                    ChalkButtonLabel(title: "Create room", expandsWidth: true)
                         .frame(maxWidth: 347)
-                        .frame(height: 55)
-                        .overlay {
-                            Text("Create room")
-                                .font(AppTheme.font(size: 18))
-                                .foregroundStyle(AppTheme.text)
-                        }
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(normalizedName.isEmpty)
-                .opacity(normalizedName.isEmpty ? 0.45 : 1)
+                .opacity(normalizedName.isEmpty ? 0.7 : 1)
 
                 if case .failed(let message) = connection.state {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
@@ -229,75 +187,3 @@ struct CreateRoomView: View {
         CreateRoomView(initialConnectionMode: .wifi)
     }
 }
-
-
-/*
- .textFieldStyle(.plain)
- .background(Color.clear)
- .textInputAutocapitalization(.words)
- .autocorrectionDisabled()
- .submitLabel(.go)
- .onSubmit(createRoom)
- .overlay {
-     Image("input_frame")
-         .resizable()
-         .frame(width: 381, height: 60)
-         .allowsHitTesting(false)
- }
- 
- 
- TextField("Player name", text: $playerName)
-     .textFieldStyle(.plain)
-     .padding(.horizontal, 24)
-     .frame(maxWidth: .infinity)
-     .frame(height: 60)
-     .background {
-         Image("input_frame")
-             .resizable()
-             .overlay {
-                 Image("monkey_chalk")
-                     .resizable()
-                     .frame(width: 108, height: 162)
-                     .offset(x:100, y: -40)
-             }
-     }
-     .textInputAutocapitalization(.words)
-     .autocorrectionDisabled()
-     .submitLabel(.go)
-     .onSubmit(createRoom)
-     .listRowInsets(EdgeInsets())
-     .listRowBackground(Color.clear)
-     .listRowSeparator(.hidden)
-
-
-
- Text("Your Name")
-     .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
-
- ZStack(alignment: .bottom) {
-     TextField("Player name", text: $playerName)
-         .textFieldStyle(.plain)
-         .padding(.horizontal, 24)
-         .frame(maxWidth: .infinity)
-         .frame(height: 60)
-         .background {
-             Image("input_frame")
-                 .resizable()
-         }
-         .textInputAutocapitalization(.words)
-         .autocorrectionDisabled()
-         .submitLabel(.go)
-         .onSubmit(createRoom)
-
-     Image("monkey_chalk")
-         .resizable()
-         .frame(width: 108, height: 162)
-         .offset(x: 100)
-         .allowsHitTesting(false)
- }
- .frame(maxWidth: .infinity)
- .frame(height: 162)
-
- Text("The room will be created under this name.")
-     .appTextStyle(AppTheme.secondaryChalkboardText(size: 18))
- */

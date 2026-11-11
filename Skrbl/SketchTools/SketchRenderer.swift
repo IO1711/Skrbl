@@ -8,14 +8,14 @@
 import CoreGraphics
 import Foundation
 
-enum SketchRenderer {
+nonisolated enum SketchRenderer {
     private static let width = 512
     private static let height = 512
     private static let bytesPerPixel = 4
     private static let lineWidth: CGFloat = 4
 
     static func render(_ elements: [SketchElement]) -> CGImage? {
-        guard !elements.isEmpty else { return nil }
+        guard !elements.isEmpty, !Task.isCancelled else { return nil }
 
         let bytesPerRow = width * bytesPerPixel
         var pixels = [UInt8](
@@ -50,6 +50,7 @@ enum SketchRenderer {
             let pixelBuffer = baseAddress.assumingMemoryBound(to: UInt8.self)
 
             for element in elements {
+                guard !Task.isCancelled else { return nil }
                 switch element.kind {
                 case .stroke:
                     guard let stroke = element.stroke else { continue }
@@ -139,6 +140,7 @@ enum SketchRenderer {
 
         var queueIndex = 0
         while queueIndex < queue.count {
+            if queueIndex.isMultiple(of: 1_024), Task.isCancelled { return }
             let pixel = queue[queueIndex]
             queueIndex += 1
 

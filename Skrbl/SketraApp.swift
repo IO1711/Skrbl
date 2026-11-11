@@ -47,7 +47,7 @@ struct SketraApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .font(AppTheme.font(size: 16))
+                .font(AppTheme.font(size: 16, relativeTo: .body))
                 .foregroundStyle(AppTheme.text)
                 .tint(AppTheme.text)
                 .preferredColorScheme(.dark)

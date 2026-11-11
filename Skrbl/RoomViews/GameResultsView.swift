@@ -20,7 +20,7 @@ struct GameResultsView: View {
                         .foregroundStyle(.yellow)
 
                     Text("Game Over")
-                        .font(AppTheme.font(size: 34))
+                        .font(AppTheme.font(size: 34, relativeTo: .largeTitle))
                         .multilineTextAlignment(.center)
 
                     if !rankings.isEmpty {
@@ -69,12 +69,12 @@ struct GameResultsView: View {
                     .frame(width: 44, height: 44)
 
                 Text("#\(position)")
-                    .font(AppTheme.font(size: 15))
+                    .font(AppTheme.font(size: 15, relativeTo: .subheadline))
                     .foregroundStyle(AppTheme.text)
             }
 
             Text(playerScore.playerName)
-                .font(AppTheme.font(size: 17))
+                .font(AppTheme.font(size: 17, relativeTo: .body))
                 .lineLimit(1)
 
             Spacer(minLength: 12)

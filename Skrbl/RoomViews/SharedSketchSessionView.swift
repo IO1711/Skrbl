@@ -18,7 +18,7 @@ private struct GuessFieldFramePreferenceKey: PreferenceKey {
 }
 
 struct SharedSketchSessionView: View {
-    @ObservedObject var connection: RoomConnectionManager
+    var connection: RoomConnectionManager
     @State private var viewerWord = ""
     @State private var keyboardOverlap: CGFloat = 0
     @State private var guessFieldFrame = CGRect.null
@@ -121,17 +121,17 @@ struct SharedSketchSessionView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(turnStatusText)
-                    .font(AppTheme.font(size: 15))
+                    .font(AppTheme.font(size: 15, relativeTo: .subheadline))
 
                 Text(roundDetailText)
-                    .font(AppTheme.font(size: 12))
+                    .font(AppTheme.font(size: 12, relativeTo: .caption))
                     .foregroundStyle(AppTheme.secondaryText)
             }
 
             Spacer()
 
             Text("\(connection.localPlayerScore) pts")
-                .font(AppTheme.font(size: 13))
+                .font(AppTheme.font(size: 13, relativeTo: .footnote))
                 .monospacedDigit()
                 .padding(.horizontal, 9)
                 .padding(.vertical, 6)
@@ -142,7 +142,7 @@ struct SharedSketchSessionView: View {
 
             if connection.gamePhase == .drawing {
                 Label(formattedTime, systemImage: "timer")
-                    .font(AppTheme.font(size: 15))
+                    .font(AppTheme.font(size: 15, relativeTo: .subheadline))
                     .foregroundStyle(
                         connection.remainingSeconds <= 10 ? Color.red : AppTheme.text
                     )
@@ -164,7 +164,7 @@ struct SharedSketchSessionView: View {
     }
 
     private var guessProgress: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 ForEach(
                     Array(zip(connection.playerIDs, connection.players)),
@@ -179,7 +179,7 @@ struct SharedSketchSessionView: View {
                                 ? "checkmark.circle.fill"
                                 : "circle"
                         )
-                        .font(AppTheme.font(size: 12))
+                        .font(AppTheme.font(size: 12, relativeTo: .caption))
                         .foregroundStyle(
                             hasGuessed ? Color.green : AppTheme.secondaryText
                         )
@@ -199,6 +199,7 @@ struct SharedSketchSessionView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .scrollIndicators(.hidden)
         .background(AppTheme.background)
         .overlay(alignment: .bottom) {
             Divider()
@@ -207,7 +208,7 @@ struct SharedSketchSessionView: View {
 
     private var wordHintStrip: some View {
         Text(connection.wordHint)
-            .font(AppTheme.font(size: 20))
+            .font(AppTheme.font(size: 20, relativeTo: .title3))
             .foregroundStyle(AppTheme.text)
             .multilineTextAlignment(.center)
             .lineLimit(2)
@@ -232,10 +233,10 @@ struct SharedSketchSessionView: View {
 
             VStack(spacing: 6) {
                 Text("Choose a Word")
-                    .font(AppTheme.font(size: 22))
+                    .font(AppTheme.font(size: 22, relativeTo: .title2))
 
                 Text("Your timer starts after you choose.")
-                    .font(AppTheme.font(size: 15))
+                    .font(AppTheme.font(size: 15, relativeTo: .subheadline))
                     .foregroundStyle(AppTheme.secondaryText)
             }
 
@@ -248,7 +249,7 @@ struct SharedSketchSessionView: View {
                             connection.selectWord(word)
                         } label: {
                             Text(word)
-                                .font(AppTheme.font(size: 17))
+                                .font(AppTheme.font(size: 17, relativeTo: .body))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)
                         }
@@ -278,7 +279,7 @@ struct SharedSketchSessionView: View {
                 .foregroundStyle(AppTheme.secondaryText)
 
             Text(title)
-                .font(AppTheme.font(size: 17))
+                .font(AppTheme.font(size: 17, relativeTo: .body))
                 .foregroundStyle(AppTheme.secondaryText)
                 .multilineTextAlignment(.center)
 
@@ -290,7 +291,12 @@ struct SharedSketchSessionView: View {
 
     private var wordComposer: some View {
         HStack(spacing: 10) {
-            TextField("Type your guess", text: $viewerWord)
+            TextField(
+                "Type your guess",
+                text: $viewerWord,
+                prompt: Text("Type your guess")
+                    .foregroundColor(AppTheme.secondaryText)
+            )
                 .textFieldStyle(WhiteOutlineTextFieldStyle())
                 .focused($isViewerWordFocused)
                 .background {
@@ -333,7 +339,7 @@ struct SharedSketchSessionView: View {
             "Correct! Score: \(connection.localPlayerScore) points",
             systemImage: "checkmark.circle.fill"
         )
-            .font(AppTheme.font(size: 17))
+            .font(AppTheme.font(size: 17, relativeTo: .body))
             .foregroundStyle(.green)
             .frame(maxWidth: .infinity)
             .padding()
@@ -388,7 +394,8 @@ struct SharedSketchSessionView: View {
 
     private var formattedTime: String {
         let seconds = max(connection.remainingSeconds, 0)
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+        return Duration.seconds(seconds)
+            .formatted(.time(pattern: .minuteSecond))
     }
 
     private func sendWord() {

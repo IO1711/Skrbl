@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum WordTopic: String, Codable, CaseIterable, Identifiable {
+enum WordTopic: String, Codable, CaseIterable, Identifiable, Sendable {
     case animals
     case fruit
     case food
@@ -34,7 +34,7 @@ enum WordTopic: String, Codable, CaseIterable, Identifiable {
         rawValue
     }
 
-    var title: String {
+    nonisolated var title: String {
         switch self {
         case .animals:
             "Animals"

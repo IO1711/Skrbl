@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SketchBoard: View {
-    @ObservedObject private var tools: SketchTools
+    private let tools: SketchTools
     private let allowsDrawing: Bool
     private let onSkip: (() -> Void)?
 
@@ -17,20 +17,9 @@ struct SketchBoard: View {
         allowsDrawing: Bool = true,
         onSkip: (() -> Void)? = nil
     ) {
-        _tools = ObservedObject(wrappedValue: tools)
+        self.tools = tools
         self.allowsDrawing = allowsDrawing
         self.onSkip = onSkip
-    }
-
-    init(
-        allowsDrawing: Bool = true,
-        onSkip: (() -> Void)? = nil
-    ) {
-        self.init(
-            tools: SketchTools(),
-            allowsDrawing: allowsDrawing,
-            onSkip: onSkip
-        )
     }
 
     var body: some View {
@@ -55,6 +44,10 @@ struct SketchBoard: View {
                         Image(decorative: renderedImage, scale: 1),
                         in: boardRect
                     )
+                }
+
+                for stroke in tools.strokesAwaitingRender {
+                    draw(stroke, in: &context, canvasSize: size)
                 }
 
                 if let currentStroke = tools.currentStroke {
@@ -139,5 +132,6 @@ struct SketchBoard: View {
 }
 
 #Preview {
-    SketchBoard()
+    @Previewable @State var tools = SketchTools()
+    SketchBoard(tools: tools)
 }

@@ -1,245 +1,33 @@
-//
-//  SketchTools.swift
-//  Skrbl
-//
-//  Created by Codex on 30/07/2026.
-//
-
-import Combine
+import Observation
 import SwiftUI
-import UIKit
-
-enum SketchTool: String, CaseIterable, Identifiable {
-    case brush
-    case filler
-
-    var id: String {
-        rawValue
-    }
-}
-
-struct SketchRGBA {
-    let red: UInt8
-    let green: UInt8
-    let blue: UInt8
-    let alpha: UInt8
-}
-
-enum SketchColor: String, Codable, CaseIterable, Identifiable {
-    case black
-    case gray
-    case red
-    case orange
-    case yellow
-    case green
-    case cyan
-    case blue
-    case purple
-    case pink
-    case brown
-    case white
-
-    var id: String {
-        rawValue
-    }
-
-    var displayName: String {
-        rawValue.capitalized
-    }
-
-    var rgba: SketchRGBA {
-        switch self {
-        case .black:
-            SketchRGBA(red: 0, green: 0, blue: 0, alpha: 255)
-        case .gray:
-            SketchRGBA(red: 128, green: 128, blue: 128, alpha: 255)
-        case .red:
-            SketchRGBA(red: 230, green: 52, blue: 64, alpha: 255)
-        case .orange:
-            SketchRGBA(red: 242, green: 133, blue: 0, alpha: 255)
-        case .yellow:
-            SketchRGBA(red: 245, green: 201, blue: 28, alpha: 255)
-        case .green:
-            SketchRGBA(red: 39, green: 174, blue: 96, alpha: 255)
-        case .cyan:
-            SketchRGBA(red: 0, green: 174, blue: 239, alpha: 255)
-        case .blue:
-            SketchRGBA(red: 33, green: 120, blue: 246, alpha: 255)
-        case .purple:
-            SketchRGBA(red: 155, green: 81, blue: 224, alpha: 255)
-        case .pink:
-            SketchRGBA(red: 235, green: 87, blue: 137, alpha: 255)
-        case .brown:
-            SketchRGBA(red: 132, green: 94, blue: 62, alpha: 255)
-        case .white:
-            SketchRGBA(red: 255, green: 255, blue: 255, alpha: 255)
-        }
-    }
-
-    var color: Color {
-        let rgba = rgba
-        return Color(
-            red: Double(rgba.red) / 255,
-            green: Double(rgba.green) / 255,
-            blue: Double(rgba.blue) / 255,
-            opacity: Double(rgba.alpha) / 255
-        )
-    }
-
-    func menuIcon(isSelected: Bool) -> Image {
-        let rgba = rgba
-        let uiColor = UIColor(
-            red: CGFloat(rgba.red) / 255,
-            green: CGFloat(rgba.green) / 255,
-            blue: CGFloat(rgba.blue) / 255,
-            alpha: CGFloat(rgba.alpha) / 255
-        )
-        let symbolName = isSelected ? "checkmark.circle.fill" : "circle.fill"
-        let image = UIImage(systemName: symbolName)?
-            .withTintColor(uiColor, renderingMode: .alwaysOriginal)
-
-        return Image(uiImage: image ?? UIImage())
-    }
-}
-
-struct SketchPoint: Codable, Equatable {
-    let x: Double
-    let y: Double
-
-    init(location: CGPoint, in size: CGSize) {
-        guard size.width > 0, size.height > 0 else {
-            x = 0
-            y = 0
-            return
-        }
-
-        x = min(max(Double(location.x / size.width), 0), 1)
-        y = min(max(Double(location.y / size.height), 0), 1)
-    }
-
-    func location(in size: CGSize) -> CGPoint {
-        CGPoint(
-            x: CGFloat(x) * size.width,
-            y: CGFloat(y) * size.height
-        )
-    }
-}
-
-struct SketchStroke: Codable, Equatable {
-    var points: [SketchPoint]
-    let color: SketchColor
-}
-
-struct SketchFill: Codable, Equatable {
-    let point: SketchPoint
-    let color: SketchColor
-}
-
-struct SketchElement: Codable, Equatable {
-    enum Kind: String, Codable {
-        case stroke
-        case fill
-    }
-
-    let kind: Kind
-    let stroke: SketchStroke?
-    let fill: SketchFill?
-
-    static func stroke(_ stroke: SketchStroke) -> SketchElement {
-        SketchElement(kind: .stroke, stroke: stroke, fill: nil)
-    }
-
-    static func fill(_ fill: SketchFill) -> SketchElement {
-        SketchElement(kind: .fill, stroke: nil, fill: fill)
-    }
-}
-
-struct SketchCommand: Codable {
-    enum Action: String, Codable {
-        case beginStroke
-        case continueStroke
-        case finishStroke
-        case fill
-        case snapshot
-    }
-
-    let action: Action
-    let point: SketchPoint?
-    let color: SketchColor?
-    let elements: [SketchElement]?
-    let currentStroke: SketchStroke?
-
-    static func begin(
-        at point: SketchPoint,
-        color: SketchColor
-    ) -> SketchCommand {
-        SketchCommand(
-            action: .beginStroke,
-            point: point,
-            color: color,
-            elements: nil,
-            currentStroke: nil
-        )
-    }
-
-    static func continueStroke(at point: SketchPoint) -> SketchCommand {
-        SketchCommand(
-            action: .continueStroke,
-            point: point,
-            color: nil,
-            elements: nil,
-            currentStroke: nil
-        )
-    }
-
-    static func finish(at point: SketchPoint) -> SketchCommand {
-        SketchCommand(
-            action: .finishStroke,
-            point: point,
-            color: nil,
-            elements: nil,
-            currentStroke: nil
-        )
-    }
-
-    static func fill(
-        at point: SketchPoint,
-        color: SketchColor
-    ) -> SketchCommand {
-        SketchCommand(
-            action: .fill,
-            point: point,
-            color: color,
-            elements: nil,
-            currentStroke: nil
-        )
-    }
-
-    static func snapshot(
-        elements: [SketchElement],
-        currentStroke: SketchStroke?
-    ) -> SketchCommand {
-        SketchCommand(
-            action: .snapshot,
-            point: nil,
-            color: nil,
-            elements: elements,
-            currentStroke: currentStroke
-        )
-    }
-}
 
 @MainActor
-final class SketchTools: ObservableObject {
-    @Published private(set) var elements: [SketchElement] = []
-    @Published private(set) var currentStroke: SketchStroke?
-    @Published private(set) var renderedImage: CGImage?
-    @Published var selectedTool: SketchTool = .brush
-    @Published var selectedColor: SketchColor = .black
+@Observable
+final class SketchTools {
+    private(set) var elements: [SketchElement] = []
+    private(set) var currentStroke: SketchStroke?
+    private(set) var renderedImage: CGImage?
+    private(set) var strokesAwaitingRender: [SketchStroke] = []
+    var selectedTool: SketchTool = .brush
+    var selectedColor: SketchColor = .black
 
-    var commandHandler: ((SketchCommand) -> Void)?
+    @ObservationIgnored var commandHandler: ((SketchCommand) -> Void)?
 
     private var history: [[SketchElement]] = []
+    @ObservationIgnored private var pendingPoints: [SketchPoint] = []
+    @ObservationIgnored private var transmissionTask: Task<Void, Never>?
+    @ObservationIgnored private var lastSampleTime = ContinuousClock.now
+    @ObservationIgnored private let renderService = SketchRenderService()
+    @ObservationIgnored private var renderTask: Task<Void, Never>?
+    @ObservationIgnored private var renderGeneration = 0
+
+    private let maximumElements = SketchDrawingLimits.maximumElements
+    private let maximumPointsPerStroke = SketchDrawingLimits.maximumPointsPerStroke
+
+    private var totalPointCount: Int {
+        elements.reduce(0) { $0 + ($1.stroke?.points.count ?? 0) }
+            + (currentStroke?.points.count ?? 0)
+    }
 
     var canClear: Bool {
         !elements.isEmpty || currentStroke != nil
@@ -254,23 +42,49 @@ final class SketchTools: ObservableObject {
     }
 
     func beginStroke(at point: SketchPoint) {
+        guard point.isValid, elements.count < maximumElements,
+              totalPointCount < SketchDrawingLimits.maximumTotalPoints - 1 else { return }
+        discardPendingPoints()
+        lastSampleTime = ContinuousClock.now
         applyBeginStroke(at: point, color: selectedColor)
         commandHandler?(.begin(at: point, color: selectedColor))
     }
 
     func continueStroke(at point: SketchPoint) {
+        guard point.isValid, let lastPoint = currentStroke?.points.last,
+              let count = currentStroke?.points.count,
+              count < maximumPointsPerStroke - 1,
+              totalPointCount < SketchDrawingLimits.maximumTotalPoints - 1 else { return }
+
+        let now = ContinuousClock.now
+        let dx = point.x - lastPoint.x
+        let dy = point.y - lastPoint.y
+        guard dx * dx + dy * dy >= 0.003 * 0.003,
+              lastSampleTime.duration(to: now) >= .milliseconds(16) else {
+            return
+        }
+
+        lastSampleTime = now
         applyContinueStroke(at: point)
-        commandHandler?(.continueStroke(at: point))
+        pendingPoints.append(point)
+        if pendingPoints.count >= SketchDrawingLimits.maximumBatchPoints {
+            flushPendingPoints()
+        } else {
+            scheduleTransmission()
+        }
     }
 
     func finishStroke(at point: SketchPoint) {
-        guard currentStroke != nil else { return }
+        guard point.isValid, currentStroke != nil else { return }
 
+        flushPendingPoints()
         applyFinishStroke(at: point)
         commandHandler?(.finish(at: point))
     }
 
     func fill(at point: SketchPoint) {
+        guard point.isValid, elements.count < maximumElements else { return }
+        discardPendingPoints()
         applyFill(at: point, color: selectedColor)
         commandHandler?(.fill(at: point, color: selectedColor))
     }
@@ -278,8 +92,10 @@ final class SketchTools: ObservableObject {
     func clear() {
         guard canClear else { return }
 
+        discardPendingPoints()
         history.append(elements)
         elements.removeAll()
+        strokesAwaitingRender = []
         currentStroke = nil
         updateRenderedImage()
         commandHandler?(snapshotCommand)
@@ -288,22 +104,29 @@ final class SketchTools: ObservableObject {
     func undo() {
         guard let previousElements = history.popLast() else { return }
 
+        discardPendingPoints()
         elements = previousElements
+        strokesAwaitingRender = []
         currentStroke = nil
         updateRenderedImage()
         commandHandler?(snapshotCommand)
     }
 
     func reset() {
+        discardPendingPoints()
+        renderTask?.cancel()
+        renderGeneration += 1
         elements = []
         currentStroke = nil
         history = []
+        strokesAwaitingRender = []
         renderedImage = nil
         selectedTool = .brush
         selectedColor = .black
     }
 
     func applyRemote(_ command: SketchCommand) {
+        guard canApply(command) else { return }
         switch command.action {
         case .beginStroke:
             guard let point = command.point,
@@ -314,6 +137,9 @@ final class SketchTools: ObservableObject {
         case .continueStroke:
             guard let point = command.point else { return }
             applyContinueStroke(at: point)
+        case .appendPoints:
+            guard let points = command.points else { return }
+            applyContinueStroke(points: points)
         case .finishStroke:
             guard let point = command.point else { return }
             applyFinishStroke(at: point)
@@ -324,9 +150,12 @@ final class SketchTools: ObservableObject {
             }
             applyFill(at: point, color: color)
         case .snapshot:
+            discardPendingPoints()
             elements = command.elements ?? []
             currentStroke = command.currentStroke
             history = []
+            strokesAwaitingRender = []
+            renderedImage = nil
             updateRenderedImage()
         }
     }
@@ -339,21 +168,27 @@ final class SketchTools: ObservableObject {
     }
 
     private func applyContinueStroke(at point: SketchPoint) {
+        applyContinueStroke(points: [point])
+    }
+
+    private func applyContinueStroke(points: [SketchPoint]) {
         guard var stroke = currentStroke else { return }
 
-        stroke.points.append(point)
+        stroke.points.append(contentsOf: points)
         currentStroke = stroke
     }
 
     private func applyFinishStroke(at point: SketchPoint) {
         guard var finishedStroke = currentStroke else { return }
 
-        if finishedStroke.points.last != point {
+        if finishedStroke.points.last != point,
+           finishedStroke.points.count < maximumPointsPerStroke {
             finishedStroke.points.append(point)
         }
 
         history.append(elements)
         elements.append(.stroke(finishedStroke))
+        strokesAwaitingRender.append(finishedStroke)
         currentStroke = nil
         updateRenderedImage()
     }
@@ -373,102 +208,82 @@ final class SketchTools: ObservableObject {
     }
 
     private func updateRenderedImage() {
-        renderedImage = SketchRenderer.render(elements)
-    }
-}
-
-struct SketchToolbar: View {
-    @ObservedObject var tools: SketchTools
-    let onSkip: (() -> Void)?
-
-    var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                ForEach(SketchTool.allCases) { tool in
-                    Button {
-                        tools.selectedTool = tool
-                    } label: {
-                        Label(
-                            tool == .brush ? "Brush" : "Filler",
-                            systemImage: tool == .brush
-                                ? "paintbrush.fill"
-                                : "paintbucket.fill"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(
-                        WhiteOutlineButtonStyle(
-                            isSelected: tools.selectedTool == tool
-                        )
-                    )
-                }
-
-                colorPalette
-            }
-
-            HStack(spacing: 12) {
-                Button {
-                    tools.clear()
-                } label: {
-                    Label("Eraser", systemImage: "eraser")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(!tools.canClear)
-
-                Button {
-                    tools.undo()
-                } label: {
-                    Label("Back", systemImage: "arrow.uturn.backward")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(!tools.canUndo)
-
-                if let onSkip {
-                    Button(action: onSkip) {
-                        Label("Skip", systemImage: "forward.end.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .buttonStyle(WhiteOutlineButtonStyle())
+        renderTask?.cancel()
+        renderGeneration += 1
+        let generation = renderGeneration
+        let snapshot = elements
+        guard !snapshot.isEmpty else {
+            renderedImage = nil
+            return
         }
-        .controlSize(.large)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(AppTheme.background)
-        .overlay(alignment: .top) {
-            Divider()
+
+        renderTask = Task {
+            let result = await renderService.render(snapshot)
+            guard !Task.isCancelled, generation == renderGeneration else {
+                return
+            }
+            renderedImage = result.image
+            strokesAwaitingRender = []
         }
     }
 
-    private var colorPalette: some View {
-        Menu {
-            ForEach(SketchColor.allCases) { color in
-                Button {
-                    tools.selectedColor = color
-                } label: {
-                    Label {
-                        Text(color.displayName)
-                    } icon: {
-                        color.menuIcon(isSelected: tools.selectedColor == color)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "paintpalette.fill")
+    func canApply(
+        _ command: SketchCommand,
+        maximumElements: Int = SketchDrawingLimits.maximumElements,
+        maximumPointsPerStroke: Int = SketchDrawingLimits.maximumPointsPerStroke
+    ) -> Bool {
+        guard command.isValid(
+            maximumElements: maximumElements,
+            maximumPointsPerStroke: maximumPointsPerStroke
+        ) else { return false }
 
-                Circle()
-                    .fill(tools.selectedColor.color)
-                    .frame(width: 18, height: 18)
-                    .overlay {
-                        Circle()
-                            .stroke(Color.secondary, lineWidth: 1)
-                    }
-            }
-            .frame(minWidth: 58)
+        switch command.action {
+        case .beginStroke:
+            return elements.count < maximumElements
+                && totalPointCount < SketchDrawingLimits.maximumTotalPoints - 1
+        case .continueStroke, .finishStroke:
+            return currentStroke != nil
+                && elements.count < maximumElements
+                && (currentStroke?.points.count ?? 0) < maximumPointsPerStroke
+                && totalPointCount < SketchDrawingLimits.maximumTotalPoints
+        case .appendPoints:
+            return currentStroke != nil
+                && (currentStroke?.points.count ?? 0)
+                    + (command.points?.count ?? 0) < maximumPointsPerStroke
+                && totalPointCount + (command.points?.count ?? 0)
+                    < SketchDrawingLimits.maximumTotalPoints
+        case .fill:
+            return elements.count < maximumElements
+        case .snapshot:
+            return true
         }
-        .buttonStyle(WhiteOutlineButtonStyle())
-        .accessibilityLabel("Brush color: \(tools.selectedColor.displayName)")
+    }
+
+    private func scheduleTransmission() {
+        guard transmissionTask == nil else { return }
+        transmissionTask = Task {
+            try? await Task.sleep(for: .milliseconds(33))
+            guard !Task.isCancelled else { return }
+            flushPendingPoints()
+        }
+    }
+
+    func flushPendingTransmission() {
+        flushPendingPoints()
+    }
+
+    private func flushPendingPoints() {
+        transmissionTask?.cancel()
+        transmissionTask = nil
+        guard !pendingPoints.isEmpty else { return }
+        let points = pendingPoints
+        pendingPoints.removeAll(keepingCapacity: true)
+        commandHandler?(.append(points))
+    }
+
+    private func discardPendingPoints() {
+        transmissionTask?.cancel()
+        transmissionTask = nil
+        pendingPoints.removeAll(keepingCapacity: true)
     }
 }

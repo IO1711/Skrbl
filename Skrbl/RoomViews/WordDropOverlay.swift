@@ -33,6 +33,7 @@ struct WordDropOverlay: View {
 }
 
 private struct AnimatedWordDrop: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let word: WordDrop
     let containerSize: CGSize
 
@@ -59,12 +60,12 @@ private struct AnimatedWordDrop: View {
 
         VStack(alignment: .leading, spacing: 2) {
             Text(word.playerName)
-                .font(AppTheme.font(size: 11))
+                .font(AppTheme.font(size: 11, relativeTo: .caption2))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(word.text)
-                .font(AppTheme.font(size: 18))
+                .font(AppTheme.font(size: 18, relativeTo: .headline))
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
         }
@@ -85,7 +86,7 @@ private struct AnimatedWordDrop: View {
         .position(x: xPosition, y: initialY)
         .offset(y: fallDistance * verticalProgress)
         .opacity(opacity)
-        .task(id: word.id) {
+        .task(id: reduceMotion) {
             verticalProgress = 0
             opacity = 1
 
@@ -95,8 +96,10 @@ private struct AnimatedWordDrop: View {
                 return
             }
 
-            withAnimation(.linear(duration: fallDuration)) {
-                verticalProgress = 1
+            if !reduceMotion {
+                withAnimation(.linear(duration: fallDuration)) {
+                    verticalProgress = 1
+                }
             }
 
             do {
@@ -105,7 +108,7 @@ private struct AnimatedWordDrop: View {
                 return
             }
 
-            withAnimation(.linear(duration: fadeDuration)) {
+            withAnimation(.easeOut(duration: reduceMotion ? 0.2 : fadeDuration)) {
                 opacity = 0
             }
         }

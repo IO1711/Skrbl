@@ -5,12 +5,13 @@
 //  Created by Codex on 30/07/2026.
 //
 
-import Combine
 import Foundation
+import Observation
 @preconcurrency import Network
 
 @MainActor
-final class RoomConnectionManager: ObservableObject {
+@Observable
+final class RoomConnectionManager {
     static let bonjourServiceType = "_sketra-room._tcp"
 
     static let availableTimeLimits = [30, 60, 90, 120, 240]
@@ -20,26 +21,26 @@ final class RoomConnectionManager: ObservableObject {
         numberOfRounds: 5
     )
 
-    @Published private(set) var state: RoomConnectionState = .idle
-    @Published private(set) var nearbyRooms: [NearbyRoom] = []
-    @Published private(set) var players: [String] = []
-    @Published private(set) var roomID: UUID?
-    @Published private(set) var roomName = ""
-    @Published private(set) var isGameStarted = false
-    @Published private(set) var playerIDs: [UUID] = []
-    @Published private(set) var currentDrawerID: UUID?
-    @Published private(set) var connectionMode: RoomConnectionMode?
-    @Published private(set) var activeWordDrops: [WordDrop] = []
-    @Published private(set) var gameSettings = defaultGameSettings
-    @Published private(set) var gamePhase: RoomGamePhase = .lobby
-    @Published private(set) var wordChoices: [String] = []
-    @Published private(set) var wordToDraw: String?
-    @Published private(set) var wordHint = ""
-    @Published private(set) var remainingSeconds = 0
-    @Published private(set) var currentRound = 0
-    @Published private(set) var guessedPlayerIDs: Set<UUID> = []
-    @Published private(set) var playerScores: [RoomPlayerScore] = []
-    @Published private(set) var finalRankings: [RoomPlayerScore] = []
+    private(set) var state: RoomConnectionState = .idle
+    private(set) var nearbyRooms: [NearbyRoom] = []
+    private(set) var players: [String] = []
+    private(set) var roomID: UUID?
+    private(set) var roomName = ""
+    private(set) var isGameStarted = false
+    private(set) var playerIDs: [UUID] = []
+    private(set) var currentDrawerID: UUID?
+    private(set) var connectionMode: RoomConnectionMode?
+    private(set) var activeWordDrops: [WordDrop] = []
+    private(set) var gameSettings = defaultGameSettings
+    private(set) var gamePhase: RoomGamePhase = .lobby
+    private(set) var wordChoices: [String] = []
+    private(set) var wordToDraw: String?
+    private(set) var wordHint = ""
+    private(set) var remainingSeconds = 0
+    private(set) var currentRound = 0
+    private(set) var guessedPlayerIDs: Set<UUID> = []
+    private(set) var playerScores: [RoomPlayerScore] = []
+    private(set) var finalRankings: [RoomPlayerScore] = []
 
     let sketchTools = SketchTools()
 
@@ -54,13 +55,11 @@ final class RoomConnectionManager: ObservableObject {
         case bluetooth(UUID)
     }
 
-    private static let maximumMessageSize: UInt32 = 1_048_576
-
-    private let networkQueue = DispatchQueue(
+    @ObservationIgnored private let networkQueue = DispatchQueue(
         label: "com.bestAppleDev.Skrbl.room-network",
         qos: .userInitiated
     )
-    private let bluetoothTransport = BluetoothRoomTransport()
+    @ObservationIgnored private let bluetoothTransport = BluetoothRoomTransport()
 
     private var mode: Mode = .idle
     private var localPlayerID = UUID()
@@ -469,16 +468,11 @@ final class RoomConnectionManager: ObservableObject {
     }
 
     static func normalizedPlayerName(_ name: String) -> String {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return String(trimmed.prefix(24))
+        RoomGameRules.normalizedPlayerName(name)
     }
 
     static func normalizedViewerWord(_ word: String) -> String {
-        let singleLine = word
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        return String(singleLine.prefix(32))
+        RoomGameRules.normalizedViewerWord(word)
     }
 
     private static func networkParameters() -> NWParameters {
@@ -929,39 +923,17 @@ final class RoomConnectionManager: ObservableObject {
     private func consume(_ data: Data, from peer: TransportPeer) {
         var buffer = receiveBuffers[peer, default: Data()]
         buffer.append(data)
-
-        while buffer.count >= MemoryLayout<UInt32>.size {
-            let packetStart = buffer.startIndex
-            let payloadStart = buffer.index(
-                packetStart,
-                offsetBy: MemoryLayout<UInt32>.size
-            )
-            let payloadLength = buffer[packetStart..<payloadStart].reduce(UInt32(0)) {
-                ($0 << 8) | UInt32($1)
-            }
-
-            guard payloadLength <= Self.maximumMessageSize else {
-                reject(peer)
-                receiveBuffers[peer] = nil
-                return
-            }
-
-            let totalLength = MemoryLayout<UInt32>.size + Int(payloadLength)
-            guard buffer.count >= totalLength else { break }
-
-            let packetEnd = buffer.index(packetStart, offsetBy: totalLength)
-            let payload = buffer.subdata(in: payloadStart..<packetEnd)
-            buffer = Data(buffer[packetEnd...])
-
-            if let message = try? JSONDecoder().decode(
-                RoomWireMessage.self,
-                from: payload
-            ) {
+        do {
+            while let message = try RoomWireCodec.nextMessage(in: &buffer) {
                 handle(message, from: peer)
+                // Handling a malformed or unauthorized command can remove this peer.
+                guard hostPeers.contains(peer) || clientPeer == peer else { return }
             }
+            receiveBuffers[peer] = buffer
+        } catch {
+            receiveBuffers[peer] = nil
+            reject(peer)
         }
-
-        receiveBuffers[peer] = buffer
     }
 
     private func handle(
@@ -1091,6 +1063,10 @@ final class RoomConnectionManager: ObservableObject {
                 return
             }
 
+            guard sketchTools.canApply(drawingCommand) else {
+                reject(peer)
+                return
+            }
             sketchTools.applyRemote(drawingCommand)
             broadcast(message, excluding: peer)
 
@@ -1100,6 +1076,10 @@ final class RoomConnectionManager: ObservableObject {
                   let currentDrawerID,
                   message.playerID == currentDrawerID,
                   let drawingCommand = message.drawingCommand else {
+                return
+            }
+            guard sketchTools.canApply(drawingCommand) else {
+                reject(peer)
                 return
             }
             sketchTools.applyRemote(drawingCommand)
@@ -1282,12 +1262,12 @@ final class RoomConnectionManager: ObservableObject {
             return
         }
 
-        if Self.guessKey(wordDrop.text) == Self.guessKey(currentSecretWord) {
-            let timeBasedPoints = Self.correctGuessPoints(
+        if RoomGameRules.guessKey(wordDrop.text) == RoomGameRules.guessKey(currentSecretWord) {
+            let timeBasedPoints = RoomGameRules.correctGuessPoints(
                 remainingSeconds: remainingSeconds,
                 timeLimit: gameSettings.timeLimit
             )
-            let awardedPoints = Self.pointsAfterHintPenalty(
+            let awardedPoints = RoomGameRules.pointsAfterHintPenalty(
                 timeBasedPoints,
                 revealedLetterCount: revealedHintIndices.count
             )
@@ -1316,47 +1296,10 @@ final class RoomConnectionManager: ObservableObject {
         }
     }
 
-    private static func guessKey(_ word: String) -> String {
-        let folded = word.folding(
-            options: [.caseInsensitive, .diacriticInsensitive],
-            locale: .current
-        )
-        return folded.unicodeScalars
-            .filter { CharacterSet.alphanumerics.contains($0) }
-            .map(String.init)
-            .joined()
-            .lowercased()
-    }
-
-    private static func correctGuessPoints(
-        remainingSeconds: Int,
-        timeLimit: Int
-    ) -> Int {
-        guard timeLimit > 0 else { return 20 }
-
-        let clampedRemainingSeconds = min(max(remainingSeconds, 0), timeLimit)
-        let elapsedFraction = 1
-            - Double(clampedRemainingSeconds) / Double(timeLimit)
-
-        guard elapsedFraction > 0.20 else { return 100 }
-
-        let scoringProgress = min(max((elapsedFraction - 0.20) / 0.80, 0), 1)
-        let points = 20 + 80 * (1 - pow(scoringProgress, 1.5))
-        return min(max(Int(points.rounded()), 20), 100)
-    }
-
-    private static func pointsAfterHintPenalty(
-        _ points: Int,
-        revealedLetterCount: Int
-    ) -> Int {
-        let penalty = min(Double(max(revealedLetterCount, 0)) * 0.10, 0.50)
-        return max(Int((Double(points) * (1 - penalty)).rounded()), 1)
-    }
-
     private func prepareWordHint(for word: String) {
         hintCharacters = Array(word)
         hintRevealOrder = hintCharacters.indices
-            .filter { Self.isHintLetter(hintCharacters[$0]) }
+            .filter { RoomGameRules.isHintLetter(hintCharacters[$0]) }
             .shuffled()
         revealedHintIndices = []
         wordHint = formattedWordHint()
@@ -1398,31 +1341,10 @@ final class RoomConnectionManager: ObservableObject {
     }
 
     private func formattedWordHint() -> String {
-        var result = ""
-        var needsCharacterSpacing = false
-
-        for (index, character) in hintCharacters.enumerated() {
-            if character.isWhitespace {
-                result += "   "
-                needsCharacterSpacing = false
-                continue
-            }
-
-            if needsCharacterSpacing {
-                result += " "
-            }
-
-            if Self.isHintLetter(character) {
-                result += revealedHintIndices.contains(index)
-                    ? String(character)
-                    : "_"
-            } else {
-                result += String(character)
-            }
-            needsCharacterSpacing = true
-        }
-
-        return result
+        RoomGameRules.wordHint(
+            characters: hintCharacters,
+            revealedIndices: revealedHintIndices
+        )
     }
 
     private func resetWordHintState() {
@@ -1430,12 +1352,6 @@ final class RoomConnectionManager: ObservableObject {
         hintCharacters = []
         hintRevealOrder = []
         revealedHintIndices = []
-    }
-
-    private static func isHintLetter(_ character: Character) -> Bool {
-        character.unicodeScalars.contains {
-            CharacterSet.alphanumerics.contains($0)
-        }
     }
 
     private func addPoints(_ points: Int, to playerID: UUID) {
@@ -1692,43 +1608,22 @@ final class RoomConnectionManager: ObservableObject {
         let activePlayerIDs = turnOrder.filter { playerIDs.contains($0) }
         gamePlayerIDs = activePlayerIDs
 
-        guard !activePlayerIDs.isEmpty,
-              let currentDrawerID,
-              let currentIndex = turnOrder.firstIndex(of: currentDrawerID) else {
+        guard let nextTurn = RoomGameRules.nextTurn(
+            after: currentDrawerID,
+            previousOrder: turnOrder,
+            activePlayerIDs: activePlayerIDs,
+            round: currentRound,
+            numberOfRounds: gameSettings.numberOfRounds
+        ) else {
             endGame()
             return
         }
-
-        var nextDrawerID: UUID?
-        var wrappedToNextRound = false
-
-        for offset in 1...turnOrder.count {
-            let candidateIndex = (currentIndex + offset) % turnOrder.count
-            let candidate = turnOrder[candidateIndex]
-            if activePlayerIDs.contains(candidate) {
-                nextDrawerID = candidate
-                wrappedToNextRound = candidateIndex <= currentIndex
-                break
-            }
-        }
-
-        guard let nextDrawerID else {
-            endGame()
-            return
-        }
-
-        if wrappedToNextRound {
-            guard currentRound < gameSettings.numberOfRounds else {
-                endGame()
-                return
-            }
-            currentRound += 1
-        }
+        currentRound = nextTurn.round
 
         do {
             let choices = try WordLibrary.choices(for: gameSettings.topic)
             beginTurn(
-                drawerID: nextDrawerID,
+                drawerID: nextTurn.drawerID,
                 choices: choices,
                 isInitialTurn: false
             )
@@ -1799,6 +1694,9 @@ final class RoomConnectionManager: ObservableObject {
             return
         }
 
+        // Flush before the new peer enters the round, so its snapshot and the
+        // next live batch cannot contain the same pending local points.
+        sketchTools.flushPendingTransmission()
         send(
             .settings(roomID: roomID, settings: gameSettings),
             through: peer
@@ -1994,14 +1892,7 @@ final class RoomConnectionManager: ObservableObject {
         _ message: RoomWireMessage,
         through peer: TransportPeer
     ) {
-        guard let payload = try? JSONEncoder().encode(message),
-              payload.count <= Int(Self.maximumMessageSize) else {
-            return
-        }
-
-        var length = UInt32(payload.count).bigEndian
-        var packet = Data(bytes: &length, count: MemoryLayout<UInt32>.size)
-        packet.append(payload)
+        guard let packet = try? RoomWireCodec.packet(for: message) else { return }
 
         switch peer {
         case .wifi(let identifier):
@@ -2028,7 +1919,12 @@ final class RoomConnectionManager: ObservableObject {
     private func reject(_ peer: TransportPeer) {
         switch peer {
         case .wifi(let identifier):
-            hostConnections[identifier]?.cancel()
+            if let hostConnection = hostConnections[identifier] {
+                hostConnection.cancel()
+            } else if let clientConnection,
+                      ObjectIdentifier(clientConnection) == identifier {
+                clientConnection.cancel()
+            }
         case .bluetooth(let peerID):
             bluetoothTransport.disconnect(peerID: peerID)
         }

@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct RoomLobbyView: View {
-    @ObservedObject var connection: RoomConnectionManager
+    var connection: RoomConnectionManager
     let showsQRCode: Bool
     @State private var isShowingQRCode = false
+    @State private var selectedTimeLimit = RoomConnectionManager.defaultGameSettings.timeLimit
+    @State private var selectedTopic = RoomConnectionManager.defaultGameSettings.topic
 
     var body: some View {
         List {
@@ -37,7 +39,7 @@ struct RoomLobbyView: View {
 
             Section("Game Settings") {
                 if showsQRCode {
-                    Picker("Time Limit", selection: timeLimitBinding) {
+                    Picker("Time Limit", selection: $selectedTimeLimit) {
                         ForEach(
                             RoomConnectionManager.availableTimeLimits,
                             id: \.self
@@ -48,7 +50,7 @@ struct RoomLobbyView: View {
                     }
                     .whiteOutlinedControl()
 
-                    Picker("Topic", selection: topicBinding) {
+                    Picker("Topic", selection: $selectedTopic) {
                         ForEach(WordTopic.allCases) { topic in
                             Text(topic.title)
                                 .tag(topic)
@@ -74,7 +76,7 @@ struct RoomLobbyView: View {
                         .accessibilityLabel("Decrease rounds")
 
                         Text("\(connection.gameSettings.numberOfRounds)")
-                            .font(AppTheme.font(size: 17))
+                            .font(AppTheme.font(size: 17, relativeTo: .body))
                             .frame(minWidth: 32)
 
                         Button {
@@ -118,7 +120,7 @@ struct RoomLobbyView: View {
                         if index == 0, showsQRCode {
                             Spacer()
                             Text("Host")
-                                .font(AppTheme.font(size: 12))
+                                .font(AppTheme.font(size: 12, relativeTo: .caption))
                                 .foregroundStyle(AppTheme.secondaryText)
                         }
                     }
@@ -128,6 +130,18 @@ struct RoomLobbyView: View {
         }
         .scrollContentBackground(.hidden)
         .mainBackground()
+        .onChange(of: connection.gameSettings, initial: true) {
+            selectedTimeLimit = connection.gameSettings.timeLimit
+            selectedTopic = connection.gameSettings.topic
+        }
+        .onChange(of: selectedTimeLimit) {
+            guard selectedTimeLimit != connection.gameSettings.timeLimit else { return }
+            connection.updateTimeLimit(selectedTimeLimit)
+        }
+        .onChange(of: selectedTopic) {
+            guard selectedTopic != connection.gameSettings.topic else { return }
+            connection.updateTopic(selectedTopic)
+        }
         .toolbar {
             if showsQRCode, connection.roomID != nil {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -186,10 +200,10 @@ struct RoomLobbyView: View {
                             .accessibilityLabel("Room QR code")
 
                         Text("Scan this code to join")
-                            .font(AppTheme.font(size: 17))
+                            .font(AppTheme.font(size: 17, relativeTo: .body))
 
                         Text(joinRequirementText)
-                            .font(AppTheme.font(size: 13))
+                            .font(AppTheme.font(size: 13, relativeTo: .footnote))
                             .foregroundStyle(AppTheme.secondaryText)
                             .multilineTextAlignment(.center)
 
@@ -219,20 +233,6 @@ struct RoomLobbyView: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-    }
-
-    private var timeLimitBinding: Binding<Int> {
-        Binding(
-            get: { connection.gameSettings.timeLimit },
-            set: connection.updateTimeLimit
-        )
-    }
-
-    private var topicBinding: Binding<WordTopic> {
-        Binding(
-            get: { connection.gameSettings.topic },
-            set: connection.updateTopic
-        )
     }
 
     private var joinRequirementText: String {

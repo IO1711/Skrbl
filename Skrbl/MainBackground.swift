@@ -28,20 +28,26 @@ enum AppTheme {
     static let secondaryText = Color.white.opacity(0.72)
     static let tertiaryText = Color.white.opacity(0.52)
 
-    static func font(size: CGFloat) -> Font {
-        .custom("Chalkduster", size: size)
+    static func font(
+        size: CGFloat,
+        relativeTo style: Font.TextStyle = .body
+    ) -> Font {
+        .custom("Chalkduster", size: size, relativeTo: style)
     }
 
-    static func chalkboardText(size: CGFloat) -> TextStyle {
+    static func chalkboardText(
+        size: CGFloat,
+        relativeTo style: Font.TextStyle = .body
+    ) -> TextStyle {
         TextStyle(
-            font: .custom("ChalkboardSE-Regular", size: size),
+            font: .custom("ChalkboardSE-Regular", size: size, relativeTo: style),
             color: text
         )
     }
 
     static func secondaryChalkboardText(size: CGFloat) -> TextStyle {
         TextStyle(
-            font: .custom("ChalkboardSE-Regular", size: size),
+            font: .custom("ChalkboardSE-Regular", size: size, relativeTo: .body),
             color: secondaryText
         )
     }
@@ -60,9 +66,11 @@ extension View {
     }
 
     func mainBackground() -> some View {
-        background {
-            MainBackground()
-        }
+        foregroundStyle(AppTheme.text)
+            .tint(AppTheme.text)
+            .background {
+                MainBackground()
+            }
     }
 
     func whiteOutlinedControl(cornerRadius: CGFloat = 10) -> some View {
@@ -84,7 +92,7 @@ struct WhiteOutlineButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(AppTheme.font(size: 16))
+            .font(AppTheme.font(size: 16, relativeTo: .body))
             .foregroundStyle(AppTheme.text)
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
@@ -104,7 +112,7 @@ struct WhiteOutlineButtonStyle: ButtonStyle {
 struct WhiteOutlineTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .font(AppTheme.font(size: 16))
+            .font(AppTheme.font(size: 16, relativeTo: .body))
             .foregroundStyle(AppTheme.text)
             .tint(AppTheme.text)
             .padding(.horizontal, 12)

@@ -6,8 +6,23 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXTargetDependency section */
+		A10000000000000000000009 /* App dependency */ = {isa = PBXTargetDependency; target = 24002219301B551F00F0DE41; targetProxy = A10000000000000000000001; };
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000001 /* App proxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 24002212301B551F00F0DE41;
+			proxyType = 1;
+			remoteGlobalIDString = 24002219301B551F00F0DE41;
+			remoteInfo = Skrbl;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2400221A301B551F00F0DE41 /* Skrbl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Skrbl.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000002 /* SkrblTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SkrblTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,6 +44,11 @@
 			path = Skrbl;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000003 /* SkrblTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SkrblTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +59,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000004 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -46,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				2400221C301B551F00F0DE41 /* Skrbl */,
+				A10000000000000000000003 /* SkrblTests */,
 				2400221B301B551F00F0DE41 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				2400221A301B551F00F0DE41 /* Skrbl.app */,
+				A10000000000000000000002 /* SkrblTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +106,19 @@
 			productReference = 2400221A301B551F00F0DE41 /* Skrbl.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000000000000000000005 /* SkrblTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000006;
+			buildPhases = (A10000000000000000000007, A10000000000000000000004, A10000000000000000000008);
+			buildRules = ();
+			dependencies = (A10000000000000000000009);
+			fileSystemSynchronizedGroups = (A10000000000000000000003);
+			name = SkrblTests;
+			packageProductDependencies = ();
+			productName = SkrblTests;
+			productReference = A10000000000000000000002;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -93,6 +129,7 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					A10000000000000000000005 = {CreatedOnToolsVersion = 26.3; TestTargetID = 24002219301B551F00F0DE41; };
 					24002219301B551F00F0DE41 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -113,6 +150,7 @@
 			projectRoot = "";
 			targets = (
 				24002219301B551F00F0DE41 /* Skrbl */,
+				A10000000000000000000005 /* SkrblTests */,
 			);
 		};
 /* End PBXProject section */
@@ -125,6 +163,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000008 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -135,6 +174,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000007 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -263,7 +303,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = TJNHB2R4K6;
@@ -289,7 +328,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -298,7 +337,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = TJNHB2R4K6;
@@ -324,8 +362,42 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1000000000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.bestAppleDev.SkrblTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skrbl.app/Skrbl";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.bestAppleDev.SkrblTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skrbl.app/Skrbl";
 			};
 			name = Release;
 		};
@@ -347,6 +419,12 @@
 				24002226301B552100F0DE41 /* Debug */,
 				24002227301B552100F0DE41 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000006 /* Test configurations */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (A1000000000000000000000A, A1000000000000000000000B);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};

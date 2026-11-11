@@ -12,14 +12,16 @@ import VisionKit
 
 struct RoomQRScanner: UIViewControllerRepresentable {
     let onCode: (String) -> Void
+    let onError: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCode: onCode)
+        Coordinator(onCode: onCode, onError: onError)
     }
 
     func makeUIViewController(context: Context) -> UIViewController {
         guard DataScannerViewController.isSupported,
               DataScannerViewController.isAvailable else {
+            context.coordinator.report("Camera scanning is unavailable. Check Camera access in Settings.")
             return ScannerUnavailableViewController()
         }
 
@@ -43,11 +45,16 @@ struct RoomQRScanner: UIViewControllerRepresentable {
         context: Context
     ) {
         guard let scanner = viewController as? DataScannerViewController,
+              context.coordinator.canStartScanning,
               !scanner.isScanning else {
             return
         }
 
-        try? scanner.startScanning()
+        do {
+            try scanner.startScanning()
+        } catch {
+            context.coordinator.report(error.localizedDescription)
+        }
     }
 
     static func dismantleUIViewController(
@@ -60,10 +67,37 @@ struct RoomQRScanner: UIViewControllerRepresentable {
     @MainActor
     final class Coordinator: NSObject, DataScannerViewControllerDelegate {
         private let onCode: (String) -> Void
+        private let onError: (String) -> Void
         private var hasDeliveredCode = false
+        private var hasReportedError = false
 
-        init(onCode: @escaping (String) -> Void) {
+        var canStartScanning: Bool {
+            !hasDeliveredCode && !hasReportedError
+        }
+
+        init(
+            onCode: @escaping (String) -> Void,
+            onError: @escaping (String) -> Void
+        ) {
             self.onCode = onCode
+            self.onError = onError
+        }
+
+        func report(_ message: String) {
+            guard canStartScanning else { return }
+            hasReportedError = true
+            // Avoid changing SwiftUI presentation state during a representable update.
+            Task { @MainActor in
+                onError(message)
+            }
+        }
+
+        func dataScanner(
+            _ dataScanner: DataScannerViewController,
+            becameUnavailableWithError error: DataScannerViewController.ScanningUnavailable
+        ) {
+            dataScanner.stopScanning()
+            report(error.localizedDescription)
         }
 
         func dataScanner(
@@ -71,7 +105,7 @@ struct RoomQRScanner: UIViewControllerRepresentable {
             didAdd addedItems: [RecognizedItem],
             allItems: [RecognizedItem]
         ) {
-            guard !hasDeliveredCode else { return }
+            guard canStartScanning else { return }
 
             for item in addedItems {
                 guard case .barcode(let barcode) = item,
@@ -111,8 +145,10 @@ private final class ScannerUnavailableViewController: UIViewController {
         label.text = "Camera scanning is unavailable.\nCheck Camera access in Settings."
         label.textAlignment = .center
         label.textColor = .white
-        label.font = UIFont(name: "Chalkduster", size: 16)
-            ?? .systemFont(ofSize: 16)
+        label.font = UIFontMetrics(forTextStyle: .body).scaledFont(
+            for: UIFont(name: "Chalkduster", size: 16) ?? .systemFont(ofSize: 16)
+        )
+        label.adjustsFontForContentSizeCategory = true
         label.numberOfLines = 0
 
         let stack = UIStackView(arrangedSubviews: [imageView, label])

@@ -8,11 +8,14 @@
 import SwiftUI
 
 struct JoinRoomView: View {
-    @StateObject private var connection = RoomConnectionManager()
+    @State private var connection = RoomConnectionManager()
     @State private var playerName = ""
     @State private var isSearching = false
     @State private var isShowingScanner = false
     @State private var showsInvalidQRCodeAlert = false
+    @State private var pendingInvalidQRCodeAlert = false
+    @State private var showsScannerErrorAlert = false
+    @State private var scannerError = ""
     @State private var selectedConnectionMode: RoomConnectionMode?
     @State private var isShowingRoom = false
 
@@ -37,13 +40,18 @@ struct JoinRoomView: View {
         .navigationDestination(isPresented: $isShowingRoom) {
             joinedRoom
         }
-        .sheet(isPresented: $isShowingScanner) {
+        .sheet(isPresented: $isShowingScanner, onDismiss: showScannerAlert) {
             scannerSheet
         }
         .alert("Not a Skrbl Room", isPresented: $showsInvalidQRCodeAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Scan the QR code shown by a Skrbl room host.")
+        }
+        .alert("Scanner Unavailable", isPresented: $showsScannerErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(scannerError)
         }
         .onChange(of: connection.isConnected) { _, isConnected in
             guard isConnected else { return }
@@ -112,58 +120,46 @@ struct JoinRoomView: View {
     private func nameEntry(connectionMode: RoomConnectionMode) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Connection")
-                        .appTextStyle(AppTheme.chalkboardText(size: 20))
-
-                    HStack {
-                        HStack {
-                            Image(connectionMode.title)
-                                .resizable()
-                                .frame(width: 44, height: 48)
-
-                            Text(connectionMode.title)
-                                .appTextStyle(AppTheme.chalkboardText(size: 20))
-                        }
-
-                        Spacer()
-
-                        Button {
-                            selectedConnectionMode = nil
-                        } label: {
-                            Image("small_button_frame")
-                                .resizable()
-                                .frame(width: 120, height: 60)
-                                .overlay {
-                                    Text("Change")
-                                        .font(AppTheme.font(size: 18))
-                                        .foregroundStyle(AppTheme.text)
-                                }
-                        }
-                    }
+                RoomConnectionHeader(mode: connectionMode) {
+                    selectedConnectionMode = nil
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your Name")
                         .appTextStyle(AppTheme.secondaryChalkboardText(size: 20))
 
-                    TextField("Player name", text: $playerName)
+                    TextField(
+                        "Player name",
+                        text: $playerName,
+                        prompt: Text("Player name")
+                            .foregroundColor(AppTheme.secondaryText)
+                    )
                         .textFieldStyle(.plain)
+                        .foregroundStyle(AppTheme.text)
+                        .tint(AppTheme.text)
                         .padding(.horizontal, 24)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 60)
+                        .frame(minHeight: 60)
                         .contentShape(Rectangle())
                         .overlay {
-                            Image("input_frame")
+                            Image(decorative: "input_frame")
                                 .resizable()
-                                .frame(width: 380)
-                                .overlay {
-                                    Image("monkey_chalk")
-                                        .resizable()
-                                        .frame(width: 108, height: 162)
-                                        .offset(x: 100, y: -40)
-                                }
                                 .allowsHitTesting(false)
+                        }
+                        .overlay {
+                            GeometryReader { geometry in
+                                let scale = min(1, geometry.size.width / 380)
+
+                                Image(decorative: "monkey_chalk")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 108 * scale, height: 162 * scale)
+                                    .position(
+                                        x: geometry.size.width / 2 + 100 * scale,
+                                        y: geometry.size.height / 2 - 40 * scale
+                                    )
+                            }
+                            .allowsHitTesting(false)
                         }
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
@@ -175,19 +171,12 @@ struct JoinRoomView: View {
                 }
 
                 Button(action: beginSearch) {
-                    Image("flat_button_frame")
-                        .resizable()
+                    ChalkButtonLabel(title: "Next", expandsWidth: true)
                         .frame(maxWidth: 347)
-                        .frame(height: 55)
-                        .overlay {
-                            Text("Next")
-                                .font(AppTheme.font(size: 18))
-                                .foregroundStyle(AppTheme.text)
-                        }
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(normalizedName.isEmpty)
-                .opacity(normalizedName.isEmpty ? 0.45 : 1)
+                .opacity(normalizedName.isEmpty ? 0.7 : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
@@ -246,6 +235,8 @@ struct JoinRoomView: View {
 
             Section {
                 Button {
+                    scannerError = ""
+                    pendingInvalidQRCodeAlert = false
                     isShowingScanner = true
                 } label: {
                     Label("Scan Room QR Code", systemImage: "qrcode.viewfinder")
@@ -272,12 +263,15 @@ struct JoinRoomView: View {
             RoomQRScanner { payload in
                 guard let roomID = RoomQRCode.roomID(from: payload) else {
                     isShowingScanner = false
-                    showsInvalidQRCodeAlert = true
+                    pendingInvalidQRCodeAlert = true
                     return
                 }
 
                 isShowingScanner = false
                 connection.joinRoom(withID: roomID)
+            } onError: { message in
+                scannerError = message
+                isShowingScanner = false
             }
             .ignoresSafeArea()
             .navigationTitle("Scan Room Code")
@@ -289,6 +283,15 @@ struct JoinRoomView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func showScannerAlert() {
+        if !scannerError.isEmpty {
+            showsScannerErrorAlert = true
+        } else if pendingInvalidQRCodeAlert {
+            showsInvalidQRCodeAlert = true
+            pendingInvalidQRCodeAlert = false
         }
     }
 
